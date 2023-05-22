@@ -1,0 +1,676 @@
+definitions:
+  entity.AuthConnectToken:
+    properties:
+      clientIpAddress:
+        minLength: 1
+        type: string
+      connectToken:
+        minLength: 1
+        type: string
+    type: object
+  entity.BaseHttpResponse:
+    properties:
+      data: {}
+      status:
+        $ref: '#/definitions/entity.HttpResponseStatus'
+    type: object
+  entity.DelConnectTokenBody:
+    properties:
+      connectToken:
+        minLength: 1
+        type: string
+    type: object
+  entity.Distribution:
+    properties:
+      activityIV:
+        minLength: 1
+        type: string
+      prizePayout:
+        type: number
+      rank:
+        minimum: 1
+        type: integer
+    type: object
+  entity.FinishGameResult:
+    properties:
+      betMode:
+        enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        type: integer
+      betTime:
+        type: string
+      connectToken:
+        minLength: 1
+        type: string
+      currencyKindBet:
+        type: number
+      currencyKindContribution:
+        type: number
+      currencyKindJackPot:
+        type: number
+      currencyKindPayout:
+        type: number
+      currencyKindWinLose:
+        type: number
+      freeGame:
+        enum:
+        - 0
+        - 1
+        type: integer
+      gameRoom:
+        minimum: 1
+        type: integer
+      gameSequenceNumber:
+        minLength: 1
+        type: string
+      sequenceID:
+        minLength: 1
+        type: string
+      serverTime:
+        type: string
+      transID:
+        type: string
+      turnTimes:
+        minimum: 1
+        type: integer
+    type: object
+  entity.GameLog:
+    properties:
+      bet:
+        type: number
+      betTime:
+        type: string
+      connectToken:
+        minLength: 1
+        type: string
+      contribution:
+        type: number
+      currencyKindBet:
+        type: number
+      currencyKindContribution:
+        type: number
+      currencyKindJackPot:
+        type: number
+      currencyKindPayout:
+        type: number
+      currencyKindWinLose:
+        type: number
+      gameLog: {}
+      gameSequenceNumber:
+        minLength: 1
+        type: string
+      jackPot:
+        type: number
+      payout:
+        type: number
+      sequenceID:
+        minLength: 1
+        type: string
+      winLose:
+        type: number
+    type: object
+  entity.GameResult:
+    properties:
+      betMode:
+        enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        type: integer
+      betTime:
+        type: string
+      connectToken:
+        minLength: 1
+        type: string
+      currencyKindBet:
+        type: number
+      currencyKindContribution:
+        type: number
+      currencyKindJackPot:
+        type: number
+      currencyKindPayout:
+        type: number
+      currencyKindWinLose:
+        type: number
+      freeGame:
+        enum:
+        - 0
+        - 1
+        type: integer
+      gameRoom:
+        minimum: 1
+        type: integer
+      gameSequenceNumber:
+        minLength: 1
+        type: string
+      sequenceID:
+        minLength: 1
+        type: string
+      serverTime:
+        type: string
+      turnTimes:
+        minimum: 1
+        type: integer
+    type: object
+  entity.HttpResponseStatus:
+    properties:
+      code:
+        type: string
+      dateTime:
+        type: string
+      message:
+        type: string
+      traceCode:
+        type: string
+    type: object
+  entity.RollHistory:
+    properties:
+      amount:
+        type: number
+      connectToken:
+        minLength: 1
+        type: string
+      gameSequenceNumber:
+        minLength: 1
+        type: string
+      rollTime:
+        type: string
+      takeAll:
+        enum:
+        - 0
+        - 1
+        type: integer
+      transID:
+        type: string
+    type: object
+  entity.RollInHistory:
+    properties:
+      betMode:
+        enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        type: integer
+      betTime:
+        type: string
+      connectToken:
+        minLength: 1
+        type: string
+      currencyKindBet:
+        type: number
+      currencyKindContribution:
+        type: number
+      currencyKindJackPot:
+        type: number
+      currencyKindPayout:
+        type: number
+      currencyKindWinLose:
+        type: number
+      freeGame:
+        enum:
+        - 0
+        - 1
+        type: integer
+      gameRoom:
+        minimum: 1
+        type: integer
+      gameSequenceNumber:
+        minLength: 1
+        type: string
+      sequenceID:
+        minLength: 1
+        type: string
+      serverTime:
+        type: string
+      transID:
+        type: string
+      turnTimes:
+        minimum: 1
+        type: integer
+    type: object
+  entity.Settlement:
+    properties:
+      activityIV:
+        minLength: 1
+        type: string
+      currency:
+        enum:
+        - CNY
+        - JPY
+        - THB
+        - MMK
+        - VND
+        - MYR
+        - IDR
+        - USD
+        - USDT
+        - BDT
+        - PHP
+        - kVND
+        - kIDR
+        - SGD
+        - KRW
+        - INR
+        - HKD
+        type: string
+      gameSequenceNumber:
+        type: string
+      memberID:
+        type: integer
+      prize:
+        type: number
+      rank:
+        minimum: 1
+        type: integer
+    type: object
+  entity.UpdateTokenLocation:
+    properties:
+      connectToken:
+        minLength: 1
+        type: string
+      location:
+        minimum: 0
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /api/betSlip/getSequenceNumber:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得單一注單將號2.1
+      tags:
+      - BetSlip
+  /api/betSlip/getSequenceNumbers:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 數量(可接受範圍1-50)
+        in: query
+        name: quantity
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得複數注單將號2.2
+      tags:
+      - BetSlip
+  /api/betSlip/roundCheck:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 開始時間
+        in: query
+        name: fromDate
+        required: true
+        type: string
+      - description: 結束時間
+        in: query
+        name: toDate
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得需補注單列表2.3
+      tags:
+      - BetSlip
+  /api/betSlipPersonal/addUniversalGameLog:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.GameLog'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 寫入遊戲紀錄3.3
+      tags:
+      - BetSlipPersonal
+  /api/currency/currencyList:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得支援幣別7.1
+      tags:
+      - Support
+  /api/gameReport/orderList:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 連線令牌
+        in: query
+        name: connectToken
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得歷史紀錄網址4.1
+      tags:
+      - GameReport
+  /api/token/createGuestConnectToken:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 會員帳號
+        in: query
+        name: account
+        required: true
+        type: string
+      - description: '幣別 '
+        in: query
+        name: currency
+        required: true
+        type: string
+      - description: 遊戲代碼
+        in: query
+        name: gameID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得測試令牌1.0
+      tags:
+      - Token
+  /api/token/delConnectToken:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.DelConnectTokenBody'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 令牌登出1.5
+      tags:
+      - Token
+  /api/token/getConnectTokenAmount:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 連線令牌
+        in: query
+        name: connectToken
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得令牌餘額1.4
+      tags:
+      - Token
+  /api/token/getConnectTokenInfo:
+    get:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 連線令牌
+        in: query
+        name: connectToken
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 取得令牌資訊1.3
+      tags:
+      - Token
+  /api/token/updateConnectTokenLocation:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.UpdateTokenLocation'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 變更令牌位置1.2
+      tags:
+      - Token
+  /api/transaction/rollIn:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.RollInHistory'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 遊戲錢包轉至個人錢包5.2
+      tags:
+      - Transaction
+  /api/transaction/rollOut:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.RollHistory'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 個人錢包轉至遊戲錢包5.1
+      tags:
+      - Transaction
+  /api/v1.0/activity/ranking/distribution:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Distribution'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 活動派獎6.2
+      tags:
+      - Activity
+  /api/v1.0/activity/ranking/settlement:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Settlement'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 活動結算6.1
+      tags:
+      - Activity
+  /api/v1.0/betSlipPersonal/gameResult:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.GameResult'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 寫入賽果(拉霸)3.1
+      tags:
+      - BetSlipPersonal
+  /api/v1.0/betSlipPersonal/supplement/result:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.FinishGameResult'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 補單補賽果單3.2
+      tags:
+      - BetSlipPersonal
+  /api/v1.0/connectToken/authorization:
+    post:
+      parameters:
+      - description: auth token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: body
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.AuthConnectToken'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.BaseHttpResponse'
+      summary: 令牌登入1.1
+      tags:
+      - Token
+swagger: "2.0"
