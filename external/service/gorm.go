@@ -26,11 +26,11 @@ func GetSqlDb() *GormDB {
 
 // 初始化,建立sql db連線與實例
 func init() {
-	sqlConnectString = "sqlserver://myadmin:123456@localhost:1688?database=MYDB"
+	sqlConnectString = "sqlserver://sa:0okmNJI(@localhost:1688?database=MYDB"
 	db, err := gorm.Open(sqlserver.Open(sqlConnectString), &gorm.Config{})
 	db.Use(dbresolver.Register(dbresolver.Config{
 		Sources:           []gorm.Dialector{sqlserver.Open(sqlConnectString)},
-		Replicas:          []gorm.Dialector{sqlserver.Open("sqlserver://myadmin:123456@localhost:1688?database=MYDB")},
+		Replicas:          []gorm.Dialector{sqlserver.Open("sqlserver://sa:0okmNJI(@localhost:1688?database=MYDB")},
 		Policy:            dbresolver.RandomPolicy{},
 		TraceResolverMode: true,
 	}).

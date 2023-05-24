@@ -84,18 +84,16 @@ func GetPlayerInfo(traceMap string, account, currency string, gameId int) (data 
 					,mc.currency as currencyKind
 					,mc.currency as walletCurrency
 					,mc.amount as currency
-					,gc.threshold
-					,gc.app
-					,gc.report
-					,gc.gamePlat
+					,ch.threshold
+					,ch.app
+					,ch.report
+					,ch.gamePlat
 					,0 as betCount
 				FROM Account as acct(nolock)
 				JOIN Channel as ch(nolock)
 					ON acct.chanId=ch.chanId
 				JOIN ManCoin as mc(nolock)
 					ON acct.account=mc.account
-				JOIN GameConfig as gc(nolock)
-					ON gc.chanId=ch.chanId AND gc.gameId=?
 				WHERE acct.account=?
 					AND mc.currency=?`
 	params := []interface{}{gameId, account, currency}
