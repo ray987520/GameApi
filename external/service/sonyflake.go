@@ -1,7 +1,9 @@
 package es
 
 import (
-	"fmt"
+	esid "TestAPI/enum/externalserviceid"
+	"TestAPI/enum/innererror"
+	"TestAPI/external/service/zaplog"
 	"strconv"
 	"time"
 
@@ -22,6 +24,7 @@ func init() {
 	//需要設置一個固定時間起點讓sonyFlakeID的timestamp區段不重複
 	beginTime, err := time.Parse(DbTimeFormat, "2023-01-01 00:00:00.000")
 	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.ErrorInfoNode, err)
 		return
 	}
 	st := sonyflake.Settings{
@@ -29,17 +32,17 @@ func init() {
 	}
 	st.MachineID = getMachineID
 	sonyFlake = sonyflake.NewSonyflake(st)
-	return
 }
 
 // 產生sonyFlakeID
-func Gen() (uuid string, err error) {
+func Gen(traceMap string) (uuid string, err error) {
 	if sonyFlake == nil {
-		err = fmt.Errorf("Init SonyFlake err: %#v \n", err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.InitFlakeError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
 		return "", err
 	}
 	id, err := sonyFlake.NextID()
 	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.GenUidError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
 		return "", err
 	}
 	uuid = strconv.FormatUint(id, 16)

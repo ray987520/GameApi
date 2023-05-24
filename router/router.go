@@ -9,6 +9,7 @@ import (
 
 	_ "TestAPI/docs"
 
+	esid "TestAPI/enum/externalserviceid"
 	es "TestAPI/external/service"
 
 	"github.com/gorilla/mux"
@@ -104,7 +105,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 // 添加自訂資料middleware,主要有traceid/requesttime
 func TraceIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		traceID, err := es.Gen()
+		traceID, err := es.Gen(es.AddTraceMap("", string(esid.UuidGen)))
 		if err != nil {
 			return
 		}

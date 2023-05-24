@@ -8,15 +8,17 @@ const (
 )
 
 const (
-	DBRedisError = "redis error"   //用於zaplog,internal error type
-	DBSqlError   = "sql error"     //用於zaplog,internal error type
-	ServiceError = "service error" //用於zaplog,internal error type
+	DBRedisError         = "redis error"            //用於zaplog,internal error type
+	DBSqlError           = "sql error"              //用於zaplog,internal error type
+	ServiceError         = "service error"          //用於zaplog,internal error type
+	ExternalServiceError = "external service error" //用於zaplog,internal error type
 )
 
 type RedisError string
 
 // 列管internal redis error,用於zaplog分類
 const (
+	InitRedisError      RedisError = "Init Redis error"
 	GetKeyError         RedisError = "Redis GetKey error"
 	SetKeyError         RedisError = "Redis SetKey error"
 	DeleteKeyError      RedisError = "Redis DeleteKey error"
@@ -67,4 +69,11 @@ type DomainError string
 // 列管internal domain檢查 error,用於zaplog分類
 const (
 	BaseCheckError DomainError = "Request Validate Error"
+)
+
+type SonyflakeError string
+
+const (
+	InitFlakeError SonyflakeError = "Init SonyFlake Error"
+	GenUidError    SonyflakeError = "Uuid Gen Error"
 )

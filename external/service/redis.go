@@ -1,9 +1,17 @@
 package es
 
 import (
+	esid "TestAPI/enum/externalserviceid"
+	"TestAPI/enum/innererror"
+	"TestAPI/external/service/zaplog"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+)
+
+const (
+	redisConnectProtocol = "tcp"
+	redisConnectServer   = "127.0.0.1:6379"
 )
 
 var redisPool *redis.Pool
@@ -23,8 +31,9 @@ func init() {
 		IdleTimeout: 60 * time.Second,
 		MaxActive:   10, //最大数
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", "127.0.0.1:6379")
+			c, err := redis.Dial(redisConnectProtocol, redisConnectServer)
 			if err != nil {
+				zaplog.Errorw(innererror.ExternalServiceError, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
 				return nil, err
 			}
 			/*
@@ -39,71 +48,96 @@ func init() {
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
+			zaplog.Errorw(innererror.ExternalServiceError, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
 			return err
 		},
 	}
 }
 
 // 取單一redis string
-func (pool *RedisPool) GetKey(key string) (value []byte, err error) {
+func (pool *RedisPool) GetKey(traceMap string, key string) (value []byte, err error) {
 	conn := redisPool.Get()
 	defer conn.Close()
 	value, err = redis.Bytes(conn.Do("GET", key))
+	zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKey, innererror.ErrorTypeNode, innererror.GetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
 	return
 }
 
 // 設置redis string
-func (pool *RedisPool) SetKey(key string, value []byte, ttlSecond int) (err error) {
+func (pool *RedisPool) SetKey(traceMap string, key string, value []byte, ttlSecond int) (err error) {
 	conn := redisPool.Get()
 	defer conn.Close()
 	_, err = conn.Do("SET", key, value)
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.ErrorTypeNode, innererror.SetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key, "value", string(value))
+		return
+	}
 	if ttlSecond > 0 {
 		_, err = conn.Do("EXPIRE", key, ttlSecond)
-	}
-	return
-}
-
-// 刪除redis keys
-func (pool *RedisPool) DeleteKey(keys ...interface{}) (err error) {
-	conn := redisPool.Get()
-	defer conn.Close()
-	_, err = redis.Int(conn.Do("DEL", keys...))
-	return
-}
-
-// redis queue LPUSH
-func (pool *RedisPool) LPushList(key string, value []byte) (err error) {
-	conn := redisPool.Get()
-	defer conn.Close()
-	_, err = redis.Int(conn.Do("LPUSH", key, value))
-	return
-}
-
-// 取redis client,需要使用MULTI之類時使用
-func (pool *RedisPool) GetClient() redis.Conn {
-	return redisPool.Get()
-}
-
-// 取多個redis string
-func (pool *RedisPool) GetKeys(keys ...interface{}) (values [][]byte, err error) {
-	conn := redisPool.Get()
-	defer conn.Close()
-	datas, err := redis.Values(conn.Do("MGET", keys...))
-	if datas != nil {
-		for _, d := range datas {
-			if d != nil {
-				data := d.([]byte)
-				values = append(values, data)
-			}
+		if err != nil {
+			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.ErrorTypeNode, innererror.SetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key, "ttlSecond", ttlSecond)
+			return
 		}
 	}
 	return
 }
 
+// 刪除redis keys
+func (pool *RedisPool) DeleteKey(traceMap string, keys ...interface{}) (err error) {
+	conn := redisPool.Get()
+	defer conn.Close()
+	_, err = redis.Int(conn.Do("DEL", keys...))
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisDeleteKey, innererror.ErrorTypeNode, innererror.DeleteKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "keys", keys)
+		return
+	}
+	return
+}
+
+// redis queue LPUSH
+func (pool *RedisPool) LPushList(traceMap string, key string, value []byte) (err error) {
+	conn := redisPool.Get()
+	defer conn.Close()
+	_, err = redis.Int(conn.Do("LPUSH", key, value))
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisLPushList, innererror.ErrorTypeNode, innererror.LPushListError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key, "value", string(value))
+		return
+	}
+	return
+}
+
+// 取redis client,需要使用MULTI之類時使用
+func (pool *RedisPool) GetClient(traceMap string) redis.Conn {
+	return redisPool.Get()
+}
+
+// 取多個redis string
+func (pool *RedisPool) GetKeys(traceMap string, keys ...interface{}) (values [][]byte, err error) {
+	conn := redisPool.Get()
+	defer conn.Close()
+	datas, err := redis.Values(conn.Do("MGET", keys...))
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKeys, innererror.ErrorTypeNode, innererror.GetKeysError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "keys", keys)
+		return
+	}
+	for _, d := range datas {
+		if d != nil {
+			data := d.([]byte)
+			values = append(values, data)
+		}
+	}
+
+	return
+}
+
 // redis INCR
-func (pool *RedisPool) IncrKey(key string) (data int64, err error) {
+func (pool *RedisPool) IncrKey(traceMap string, key string) (data int64, err error) {
 	conn := redisPool.Get()
 	defer conn.Close()
 	data, err = redis.Int64(conn.Do("INCR", key))
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKey, innererror.ErrorTypeNode, innererror.IncrKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
+		return
+	}
 	return
 }
