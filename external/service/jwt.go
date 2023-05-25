@@ -19,7 +19,7 @@ type ConnectTokenClaims struct {
 var jwtSecret = []byte("agoodsecret")
 
 // 產生JWT TOKEN
-func CreateConnectToken(account, currency string, gameId int) (tokenString string, err error) {
+func CreateConnectToken(traceMap string, account, currency string, gameId int) (tokenString string, err error) {
 	now := UtcNow()
 	claims := new(ConnectTokenClaims)
 	claims.Account = account
@@ -34,7 +34,7 @@ func CreateConnectToken(account, currency string, gameId int) (tokenString strin
 }
 
 // 驗證JWT TOKEN
-func ValidConnectToken(tokenString string) (*ConnectTokenClaims, error) {
+func ValidConnectToken(traceMap string, tokenString string) (*ConnectTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &ConnectTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
 	})

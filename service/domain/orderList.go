@@ -54,7 +54,6 @@ func (service *OrderListService) Exec() (data interface{}) {
 func getGameLanguage(traceMap string, selfDefine *entity.BaseSelfDefine, gameId int) string {
 	lang, err := database.GetGameLanguage(es.AddTraceMap(traceMap, sqlid.GetGameLanguage.String()), gameId)
 	if err != nil {
-		es.Error("traceMap:%s ,getGameLanguage error:%v", traceMap, err)
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return ""
 	}

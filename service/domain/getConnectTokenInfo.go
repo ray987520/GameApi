@@ -5,7 +5,6 @@ import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/functionid"
-	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
 	"net/http"
@@ -46,23 +45,13 @@ func (service *GetConnectTokenInfoService) Exec() (data interface{}) {
 
 // 取出緩存PlayerInfo
 func getPlayerInfoCache(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) interface{} {
-	base, wallet, err := database.GetPlayerInfoCache(es.AddTraceMap(traceMap, redisid.GetPlayerInfoCache.String()), account, currency, gameId)
-	//cache壞掉撈db
+	playerInfo, err := database.GetPlayerInfo(es.AddTraceMap(traceMap, sqlid.GetPlayerInfo.String()), account, currency, gameId)
 	if err != nil {
-		es.Error("traceMap:%s ,get cache error:%v ,base.MemberAccount:%s ,wallet.Currency:%s", traceMap, err, base.MemberAccount, wallet.Currency)
+		selfDefine.ErrorCode = string(errorcode.UnknowError)
+		return nil
 	}
-	//cache沒有資料就查sql db
-	if base.MemberAccount == "" || wallet.Currency == "" {
-		playerInfo := database.GetPlayerInfo(es.AddTraceMap(traceMap, sqlid.GetPlayerInfo.String()), account, currency, gameId)
-		if playerInfo.MemberAccount == "" {
-			es.Error("traceMap:%s ,get db error:%v ,base.MemberAccount:%s", traceMap, err, base.MemberAccount)
-			selfDefine.ErrorCode = string(errorcode.UnknowError)
-			return nil
-		}
-		database.SetPlayerBaseAndWallet(es.AddTraceMap(traceMap, redisid.SetPlayerInfoCache.String()), playerInfo)
-		base = playerInfo.PlayerBase
-		wallet = playerInfo.PlayerWallet
-	}
+	base := playerInfo.PlayerBase
+	wallet := playerInfo.PlayerWallet
 	//不輸出walletId跟重複的Currency欄位
 	wallet.WalletID = ""
 	wallet.Currency = ""

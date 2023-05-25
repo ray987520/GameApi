@@ -4,10 +4,10 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
@@ -20,7 +20,13 @@ type UpdateTokenLocationService struct {
 // databinding&validate
 func ParseUpdateTokenLocationRequest(traceMap string, r *http.Request) (request entity.UpdateTokenLocationRequest, err error) {
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.UnknowError)
+	}
+	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+	}
 	request.Authorization = r.Header.Get("Authorization")
 	request.ContentType = r.Header.Get("Content-Type")
 	request.TraceID = r.Header.Get("traceid")
@@ -51,7 +57,6 @@ func (service *UpdateTokenLocationService) Exec() (data interface{}) {
 func updateTokenLocation(traceMap string, selfDefine *entity.BaseSelfDefine, token string, location int) (isOK bool) {
 	isOK = database.UpdateTokenLocation(es.AddTraceMap(traceMap, sqlid.UpdateTokenLocation.String()), token, location)
 	if !isOK {
-		es.Error("traceMap:%s ,updateTokenLocation error", traceMap)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
 	return
@@ -60,9 +65,6 @@ func updateTokenLocation(traceMap string, selfDefine *entity.BaseSelfDefine, tok
 // 檢查aes token活耀
 func isConnectTokenAlive(traceMap string, token string) bool {
 	alive := database.GetTokenAlive(es.AddTraceMap(traceMap, sqlid.GetTokenAlive.String()), token)
-	if !alive {
-		es.Error("tranceMap:%s ,token is dead,token:%s", traceMap, token)
-	}
 	return alive
 }
 

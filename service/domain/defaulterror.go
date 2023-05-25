@@ -2,7 +2,9 @@ package domain
 
 import (
 	"TestAPI/entity"
-	es "TestAPI/external/service"
+	"TestAPI/enum/functionid"
+	"TestAPI/enum/innererror"
+	"TestAPI/external/service/zaplog"
 	"net/http"
 	"regexp"
 
@@ -37,7 +39,7 @@ func ParseDefaultError(traceMap string, r *http.Request) (request entity.Default
 func IsValid(traceMap string, data interface{}) bool {
 	err := validate.Struct(data)
 	if err != nil {
-		es.Error("traceMap:%s ,err:%v", traceMap, err)
+		zaplog.Errorw(innererror.ValidRequestError, innererror.FunctionNode, functionid.IsValid, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
 		return false
 	}
 	return err == nil
@@ -47,7 +49,7 @@ func IsValid(traceMap string, data interface{}) bool {
 func ValidateAccount(f1 validator.FieldLevel) bool {
 	match, err := regexp.MatchString("[a-zA-Z0-9_-]{3,32}", f1.Field().String())
 	if err != nil {
-		es.Error("ValidateAccount err:%v", err)
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ValidateAccount, innererror.ErrorInfoNode, err)
 		return false
 	}
 	return match

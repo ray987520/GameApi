@@ -40,4 +40,6 @@ const (
 	GetCurrencyList
 	GetRoundCheckList
 	IsExistsRolloutHistory
+	GetAccountBetCount
+	GetAccountRtp
 )

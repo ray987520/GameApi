@@ -4,7 +4,6 @@ import (
 	"TestAPI/controller"
 	"TestAPI/enum/errorcode"
 	"TestAPI/service"
-	"encoding/json"
 	"net/http"
 
 	_ "TestAPI/docs"
@@ -91,7 +90,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			reqTime := req.Header.Get("requesttime")
 			traceCode := req.Header.Get("traceid")
 			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceCode, "")
-			data, err := json.Marshal(response)
+			data, err := es.JsonMarshal(traceCode, response)
 			if err != nil {
 				data = []byte("Http Response Json Format Error")
 			}
@@ -110,7 +109,7 @@ func TraceIDMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		req.Header.Add("traceid", traceID)
-		req.Header.Add("requesttime", es.TimeString(es.LocalNow(8)))
+		req.Header.Add("requesttime", es.ApiTimeString(es.LocalNow(8)))
 		req.Header.Add("errorcode", string(errorcode.Success))
 		next.ServeHTTP(w, req)
 	})

@@ -4,10 +4,10 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -22,7 +22,15 @@ type AddGameLogService struct {
 // databinding&validate
 func ParseAddGameLogRequest(traceMap string, r *http.Request) (request entity.AddGameLogRequest, err error) {
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.UnknowError)
+		return
+	}
+	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+		return
+	}
 	request.Authorization = r.Header.Get("Authorization")
 	request.ContentType = r.Header.Get("Content-Type")
 	request.TraceID = r.Header.Get("traceid")

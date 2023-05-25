@@ -2,6 +2,7 @@ package database
 
 import (
 	"TestAPI/entity"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/innererror"
 	"TestAPI/enum/rankstatus"
 	"TestAPI/enum/redisid"
@@ -41,9 +42,9 @@ func GetExternalErrorMessage(traceMap string, code string) (errorMessage string)
 	AND codeType=1
 	AND langCode='en-US'`
 	params := []interface{}{code}
-	err := sqlDb.Select(&errorMessage, sql, params...)
+	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &errorMessage, sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "code", code)
+		errorMessage = unknowError
 	}
 	if errorMessage == "" {
 		errorMessage = unknowError
@@ -57,27 +58,28 @@ func GetCurrencyExchangeRate(traceMap string, currency string) (exchangeRate dec
 			FROM [Currency](nolock)
 			WHERE [currency]=?`
 	params := []interface{}{currency}
-	err = sqlDb.Select(&exchangeRate, sql, params...)
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &exchangeRate, sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "currency", currency)
+		exchangeRate = decimal.Zero
 		return
 	}
 	if exchangeRate.LessThanOrEqual(decimal.Zero) {
 		err = fmt.Errorf("Unknow Currency")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "exchangeRate", exchangeRate)
+		exchangeRate = decimal.Zero
 		return
 	}
 	return
 }
 
 // 取玩家資訊
-func GetPlayerInfo(traceMap string, account, currency string, gameId int) (data entity.AuthConnectTokenResponse) {
+func GetPlayerInfo(traceMap string, account, currency string, gameId int) (data entity.AuthConnectTokenResponse, err error) {
 	sql := `SELECT ch.pfCode as platformID
 					,ch.chanId as channelID
 					,'' as poolID
-					,gc.gameId as gameID
+					,? as gameID
 					,acct.acctId as memberID
-					,gc.rtp as RTP
+					,0 as RTP
 					,'' as gameAccount
 					,acct.account as memberAccount
 					,mc.id as walletId
@@ -97,12 +99,19 @@ func GetPlayerInfo(traceMap string, account, currency string, gameId int) (data 
 				WHERE acct.account=?
 					AND mc.currency=?`
 	params := []interface{}{gameId, account, currency}
-	err := sqlDb.Select(&data, sql, params...)
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "gameId", gameId, "account", account, "currency", currency)
 		return
 	}
 	data.GameAccount = fmt.Sprintf("%d_%s", data.ChannelID, data.MemberAccount)
+	data.BetCount, err = GetAccountBetCount(es.AddTraceMap(traceMap, sqlid.GetAccountBetCount.String()), account)
+	if err != nil {
+		return
+	}
+	data.RTP, err = GetAccountRtp(es.AddTraceMap(traceMap, sqlid.GetAccountRtp.String()), account)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -119,9 +128,8 @@ func AddConnectToken(traceMap string, token, account, currency, ip string, gameI
 			,[status])
 			VALUES (?,?,?,?,?,?,?,?)`
 	params := []interface{}{token, gameId, currency, account, now.Format(es.DbTimeFormat), ip, int(tokenlocation.Default), int(tokenstatus.Actived)}
-	err := sqlDb.Create(sql, params...)
+	err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.ErrorTypeNode, innererror.CreateError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "token", token, "gameId", gameId, "account", account, "currency", currency, "now", now.Format(es.DbTimeFormat), "ip", ip, "location", int(tokenlocation.Default), "status", int(tokenstatus.Actived))
 		return false
 	}
 	return err == nil
@@ -133,9 +141,8 @@ func UpdateTokenLocation(traceMap string, token string, location int) bool {
 			SET [location] = ?
  			WHERE [connectToken]=?`
 	params := []interface{}{location, token}
-	err := sqlDb.Update(sql, params...)
+	err := sqlDb.Update(es.AddTraceMap(traceMap, string(esid.SqlSelect)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.ErrorTypeNode, innererror.UpdateError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "token", token, "location", location)
 		return false
 	}
 	return err == nil
@@ -150,9 +157,8 @@ func GetTokenAlive(traceMap string, token string) (alive bool) {
 		FROM [GameToken](nolock)
 		WHERE [connectToken]=?
 		AND status=?`
-		err := sqlDb.Select(&alive, sql, token, int(tokenstatus.Actived))
+		err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &alive, sql, token, int(tokenstatus.Actived))
 		if err != nil {
-			zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetTokenAlive, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "token", token, "status", int(tokenstatus.Actived))
 			return false
 		}
 		if alive {
@@ -170,9 +176,8 @@ func DeleteToken(traceMap string, token string, deleteTime time.Time) bool {
 				,deleteTime=?
  			WHERE [connectToken]=?`
 	params := []interface{}{int(tokenstatus.Deleted), deleteTime.Format(es.DbTimeFormat), token}
-	err := sqlDb.Update(sql, params...)
+	err := sqlDb.Update(es.AddTraceMap(traceMap, string(esid.SqlUpdate)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.DeleteToken, innererror.ErrorTypeNode, innererror.UpdateError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "token", token, "status", int(tokenstatus.Deleted), "deleteTime", deleteTime.Format(es.DbTimeFormat))
 		return false
 	} else {
 		SetConnectTokenCache(es.AddTraceMap(traceMap, redisid.SetConnectTokenCache.String()), token, 1800)
@@ -205,14 +210,12 @@ func AddGameResultReCountWallet(traceMap string, data entity.GameResult, wallet 
 					SET amount=amount+?
 					WHERE id=?`}
 	params := [][]interface{}{}
-	betTime, err := time.Parse(es.ApiTimeFormat, data.BetTime)
+	betTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, data.BetTime)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "betTime", data.BetTime)
 		return false
 	}
-	serverTime, err := time.Parse(es.ApiTimeFormat, data.ServerTime)
+	serverTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, data.ServerTime)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "serverTime", data.ServerTime)
 		return false
 	}
 	params = append(params, []interface{}{data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout,
@@ -225,9 +228,8 @@ func AddGameResultReCountWallet(traceMap string, data entity.GameResult, wallet 
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.CurrencyKindPayout.Sub(data.CurrencyKindBet), walletId})
-	err = sqlDb.Transaction(sql, params...)
+	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.ErrorTypeNode, innererror.TransactionError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data, "wallet", wallet, "now", now.Format(es.DbTimeFormat))
 		return false
 	}
 	return err == nil
@@ -252,22 +254,19 @@ func AddGameResult(traceMap string, data entity.GameResult) bool {
 			,[betMode])
 		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	params := []interface{}{}
-	betTime, err := time.Parse(es.ApiTimeFormat, data.BetTime)
+	betTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, data.BetTime)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResult, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "betTime", data.BetTime)
 		return false
 	}
-	serverTime, err := time.Parse(es.ApiTimeFormat, data.ServerTime)
+	serverTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, data.ServerTime)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResult, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "serverTime", data.ServerTime)
 		return false
 	}
 	params = append(params, data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout,
 		data.CurrencyKindContribution, data.CurrencyKindJackPot, data.SequenceID, data.GameRoom, betTime.Format(es.DbTimeFormat), serverTime.Format(es.DbTimeFormat),
 		data.FreeGame, data.TurnTimes, data.BetMode)
-	err = sqlDb.Create(sql, params...)
+	err = sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.ErrorTypeNode, innererror.CreateError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data)
 		return false
 	}
 	return err == nil
@@ -292,13 +291,16 @@ func GetPlayerWallet(traceMap string, account, currency string) (data entity.Pla
 				FROM [ManCoin]
 				WHERE account=?
 				AND currency=?`
-		err = sqlDb.Select(&data, sql, account, currency)
+		err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, account, currency)
 		if err != nil {
-			zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "account", account, "currency", currency)
 			return
-		} else {
-			SetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.SetPlayerWalletCache.String()), account, currency, data)
 		}
+		if data.Currency == "" {
+			err = fmt.Errorf("Get No Wallet")
+			zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data.Currency", data.Currency)
+			return
+		}
+		SetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.SetPlayerWalletCache.String()), account, currency, data)
 	}
 	return
 }
@@ -309,9 +311,8 @@ func IsExistsTokenGameResult(traceMap string, token, gameSeqNo string) (data boo
 			FROM [GameResult](nolock)
 			WHERE connectToken=?
 			AND gameSequenceNumber=?`
-	err := sqlDb.Select(&data, sql, token, gameSeqNo)
+	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, token, gameSeqNo)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsTokenGameResult, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "token", token, "gameSeqNo", gameSeqNo)
 		return false
 	}
 	return
@@ -324,9 +325,8 @@ func IsExistsRollInHistory(traceMap string, token, gameSeqNo string) (data bool)
 			FROM RollHistory(nolock)
 			WHERE connectToken=?
 			AND transId=?`
-	err := sqlDb.Select(&data, sql, token, rollInId)
+	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, token, rollInId)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRollInHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "token", token, "rollInId", rollInId)
 		return false
 	}
 	return
@@ -359,9 +359,8 @@ func AddRollInHistory(traceMap string, data entity.GameResult, wallet entity.Pla
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.CurrencyKindPayout, walletId})
-	err = sqlDb.Transaction(sql, params...)
+	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollInHistory, innererror.ErrorTypeNode, innererror.TransactionError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data, "wallet", wallet, "now", now.Format(es.DbTimeFormat))
 		return false
 	}
 	return err == nil
@@ -388,15 +387,13 @@ func AddGameLog(traceMap string, data entity.GameLog, exchangeRate decimal.Decim
 			VALUES
 				(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 	params := []interface{}{}
-	betTime, err := time.Parse(es.ApiTimeFormat, data.BetTime)
+	betTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, data.BetTime)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameLog, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "betTime", data.BetTime)
 		return false
 	}
 	params = append(params, data.Token, data.GameSequenceNumber, data.SequenceID, data.GameLog, data.CurrencyKindBet.Mul(exchangeRate), data.CurrencyKindWinLose.Mul(exchangeRate), data.CurrencyKindPayout.Mul(exchangeRate), data.CurrencyKindContribution.Mul(exchangeRate), data.CurrencyKindJackPot.Mul(exchangeRate), data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout, data.CurrencyKindContribution, data.CurrencyKindJackPot, betTime.Format(es.DbTimeFormat))
-	err = sqlDb.Create(sql, params...)
+	err = sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameLog, innererror.ErrorTypeNode, innererror.CreateError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data, "exchangeRate", exchangeRate)
 		return false
 	}
 	return err == nil
@@ -407,9 +404,8 @@ func GetGameLanguage(traceMap string, gameId int) (data string, err error) {
 	sql := `SELECT lang
 			FROM Game(nolock)
 			WHERE gameId=?`
-	err = sqlDb.Select(&data, sql, gameId)
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, gameId)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetGameLanguage, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "gameId", gameId)
 		return
 	}
 	return
@@ -433,9 +429,8 @@ func AddRollOutHistory(traceMap string, data entity.RollHistory, wallet entity.P
 		SET amount=amount+?
 		WHERE id=?`}
 	params := [][]interface{}{}
-	rollTime, err := time.Parse(es.ApiTimeFormat, data.RollTime)
+	rollTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, data.RollTime)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollOutHistory, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "rollTime", data.RollTime)
 		return false
 	}
 	params = append(params, []interface{}{data.Token, data.TransID, data.GameSequenceNumber, data.Amount, wallet.Currency, int(rolltype.RollOut), rollTime.Format(es.DbTimeFormat)})
@@ -446,9 +441,8 @@ func AddRollOutHistory(traceMap string, data entity.RollHistory, wallet entity.P
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.Amount.Neg(), walletId})
-	err = sqlDb.Transaction(sql, params...)
+	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollOutHistory, innererror.ErrorTypeNode, innererror.TransactionError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data, "wallet", wallet)
 		return false
 	}
 	return err == nil
@@ -468,9 +462,8 @@ func AddActivityRank(traceMap string, data entity.Settlement) bool {
 				(?,?,?,?,?,?,?)`
 	params := []interface{}{}
 	params = append(params, data.ActivityIV, data.Rank, data.MemberID, data.GameSequenceNumber, data.Currency, data.Prize, int(rankstatus.UnPay))
-	err := sqlDb.Create(sql, params...)
+	err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddActivityRank, innererror.ErrorTypeNode, innererror.CreateError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data)
 		return false
 	}
 	return err == nil
@@ -485,9 +478,8 @@ func IsExistsUnpayActivityDistribution(traceMap string, activityIV string, rank 
 			AND status=?`
 	params := []interface{}{}
 	params = append(params, activityIV, rank, int(rankstatus.UnPay))
-	err := sqlDb.Select(&hasData, sql, params...)
+	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsUnpayActivityDistribution, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "activityIV", activityIV, "rank", rank, "status", int(rankstatus.UnPay))
 		return false
 	}
 	return
@@ -515,9 +507,8 @@ func ActivityDistribution(traceMap string, data entity.Distribution, walletID st
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.PrizePayout, walletId})
-	err = sqlDb.Transaction(sql, params...)
+	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.ActivityDistribution, innererror.ErrorTypeNode, innererror.TransactionError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data, "walletID", walletID, "now", now.Format(es.DbTimeFormat))
 		return false
 	}
 	return err == nil
@@ -535,14 +526,12 @@ func GetDistributionWallet(traceMap string, data entity.Distribution) (account s
 			ON A.acctId=B.memberId
 		WHERE B.[activityIV]=?
 		AND B.[rank]=?`
-	err = sqlDb.Select(&temp, sql, data.ActivityIV, data.Rank)
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &temp, sql, data.ActivityIV, data.Rank)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data)
 		return
 	}
 	wallet, err = GetPlayerWallet(es.AddTraceMap(traceMap, sqlid.GetPlayerWallet.String()), temp.Account, temp.Currency)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "temp", temp)
 		return
 	}
 	return temp.Account, wallet, err
@@ -554,9 +543,8 @@ func GetCurrencyList(traceMap string) (list []entity.CurrencyListResponse, err e
 				,[currency]
 				,[exchangeRate]
 			FROM [Currency]`
-	err = sqlDb.Select(&list, sql)
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
 		return
 	}
 	return
@@ -564,14 +552,12 @@ func GetCurrencyList(traceMap string) (list []entity.CurrencyListResponse, err e
 
 // 查RollOut對應GameResult/RollIn
 func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.RoundCheckToken, err error) {
-	rollTimeStart, err := time.Parse(es.ApiTimeFormat, fromDate)
+	rollTimeStart, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, fromDate)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "fromDate", fromDate)
 		return
 	}
-	rollTimeEnd, err := time.Parse(es.ApiTimeFormat, toDate)
+	rollTimeEnd, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, toDate)
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", es.ApiTimeFormat, "toDate", toDate)
 		return
 	}
 	sql := `SELECT RO.connectToken,RO.gameSequenceNumber
@@ -583,9 +569,8 @@ func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.
 			WHERE RO.rollTime BETWEEN ? AND ? 
 			AND RO.rollType=?
 			AND (GR.id IS NULL OR RI.id IS NULL)`
-	err = sqlDb.Select(&list, sql, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "rollTimeStart", rollTimeStart.Format(es.DbTimeFormat), "rollTimeEnd", rollTimeEnd.Format(es.DbTimeFormat), "rollType", int(rolltype.RollOut))
 		return
 	}
 	return
@@ -598,10 +583,44 @@ func IsExistsRolloutHistory(traceMap string, gameSequenceNumber string) (hasData
 			FROM RollHistory(nolock) as RO
 			WHERE RO.transId=? 
 			AND RO.rollType=?`
-	err := sqlDb.Select(&hasData, sql, rollOutId, int(rolltype.RollOut))
+	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, rollOutId, int(rolltype.RollOut))
 	if err != nil {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "rollOutId", rollOutId, "rollType", int(rolltype.RollOut))
 		return false
+	}
+	return
+}
+
+// 計算連線BetCount
+func GetAccountBetCount(traceMap string, account string) (count int, err error) {
+	sql := `SELECT COUNT(*)
+			FROM Account as acct (NOLOCK)
+			JOIN GameToken as gt (NOLOCK)
+				ON acct.account=gt.account
+			JOIN GameResult as gr (NOLOCK)
+				ON gt.connToken=gr.connToken
+			WHERE acct.account=?`
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &count, sql, account)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// 計算連線RTP
+func GetAccountRtp(traceMap string, account string) (rtp int, err error) {
+	sql := `SELECT CASE WHEN acct.acctRtp>0 THEN acct.acctRtp
+						WHEN ch.chanRtp>0 THEN ch.chanRtp
+						WHEN pf.pfRtp>0 THEN pf.pfRtp
+					END as RTP
+			FROM Account as acct(NOLOCK)
+			JOIN Channel as ch(NOLOCK)
+			ON acct.chanId=ch.chanId
+			JOIN Platform as pf(NOLOCK)
+			ON ch.pfCode=pf.pfCode
+			WHERE acct.account=?`
+	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &rtp, sql, account)
+	if err != nil {
+		return
 	}
 	return
 }

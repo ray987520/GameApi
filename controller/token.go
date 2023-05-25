@@ -6,7 +6,6 @@ import (
 	"TestAPI/enum/serviceid"
 	es "TestAPI/external/service"
 	"TestAPI/service"
-	"encoding/json"
 	"net/http"
 
 	"github.com/shopspring/decimal"
@@ -54,7 +53,7 @@ func writeHttpResponse(w http.ResponseWriter, traceID string) {
 		//response := <-service.ResponseMap[traceID]
 		//close(service.ResponseMap[traceID])
 		//delete(service.ResponseMap, traceID)
-		data, err = json.Marshal(response)
+		data, err = es.JsonMarshal(traceID, response)
 		if err != nil {
 			data = []byte("Http Response Json Format Error")
 		}

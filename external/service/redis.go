@@ -33,7 +33,7 @@ func init() {
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial(redisConnectProtocol, redisConnectServer)
 			if err != nil {
-				zaplog.Errorw(innererror.ExternalServiceError, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
+				zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
 				return nil, err
 			}
 			/*
@@ -48,7 +48,7 @@ func init() {
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
-			zaplog.Errorw(innererror.ExternalServiceError, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
+			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
 			return err
 		},
 	}
@@ -137,6 +137,18 @@ func (pool *RedisPool) IncrKey(traceMap string, key string) (data int64, err err
 	data, err = redis.Int64(conn.Do("INCR", key))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKey, innererror.ErrorTypeNode, innererror.IncrKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
+		return
+	}
+	return
+}
+
+// redis INCRBY
+func (pool *RedisPool) IncrKeyBy(traceMap string, key string, count int) (data int64, err error) {
+	conn := redisPool.Get()
+	defer conn.Close()
+	data, err = redis.Int64(conn.Do("INCRBY", key, count))
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKeyBy, innererror.ErrorTypeNode, innererror.IncrKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
 		return
 	}
 	return

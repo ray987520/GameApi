@@ -53,14 +53,12 @@ func (service *RoundCheckService) Exec() (data interface{}) {
 func getRoundCheckList(traceMap string, selfDefine *entity.BaseSelfDefine, fromDate, toDate string) (list []entity.RoundCheckToken, isOK bool) {
 	list, err := database.GetRoundCheckList(es.AddTraceMap(traceMap, sqlid.GetRoundCheckList.String()), fromDate, toDate)
 	if err != nil {
-		es.Error("traceMap:%s ,error:%v", traceMap, err)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}
 	//不存在GameResult/RollIn的建立30分鐘token(redis),finishGameResultToken:[token]
 	for _, checkData := range list {
 		if isOK = database.SetFinishGameResultTokenCache(es.AddTraceMap(traceMap, redisid.SetFinishGameResultTokenCache.String()), checkData.Token); !isOK {
-			es.Error("traceMap:%s ,SetFinishGameResultTokenCache error", traceMap)
 			selfDefine.ErrorCode = string(errorcode.UnknowError)
 			return
 		}

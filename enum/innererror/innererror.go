@@ -12,13 +12,14 @@ const (
 	DBSqlError           = "sql error"              //用於zaplog,internal error type
 	ServiceError         = "service error"          //用於zaplog,internal error type
 	ExternalServiceError = "external service error" //用於zaplog,internal error type
+	ValidRequestError    = "Bad HttpRequest"        //用於zaplog,internal error type
 )
 
 type RedisError string
 
 // 列管internal redis error,用於zaplog分類
 const (
-	InitRedisError      RedisError = "Init Redis error"
+	InitRedisError      RedisError = "Init Redigo error"
 	GetKeyError         RedisError = "Redis GetKey error"
 	SetKeyError         RedisError = "Redis SetKey error"
 	DeleteKeyError      RedisError = "Redis DeleteKey error"
@@ -42,6 +43,7 @@ type SqlError string
 
 // 列管internal sql error,用於zaplog分類
 const (
+	InitGromError    SqlError = "Init Gorm error"
 	SelectError      SqlError = "Sql Select error"
 	UpdateError      SqlError = "Sql Update error"
 	DeleteError      SqlError = "Sql Delete error"
@@ -73,6 +75,7 @@ const (
 
 type SonyflakeError string
 
+// 列管sonyflake uuid error,用於zaplog分類
 const (
 	InitFlakeError SonyflakeError = "Init SonyFlake Error"
 	GenUidError    SonyflakeError = "Uuid Gen Error"

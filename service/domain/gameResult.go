@@ -4,11 +4,11 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
@@ -21,7 +21,13 @@ type GameResultService struct {
 // databinding&validate
 func ParseGameResultRequest(traceMap string, r *http.Request) (request entity.GameResultRequest, err error) {
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.UnknowError)
+	}
+	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+	}
 	request.Authorization = r.Header.Get("Authorization")
 	request.ContentType = r.Header.Get("Content-Type")
 	request.TraceID = r.Header.Get("traceid")
@@ -61,7 +67,6 @@ func (service *GameResultService) Exec() (data interface{}) {
 func addGameResultAndRollHistory(traceMap string, selfDefine *entity.BaseSelfDefine, data entity.GameResult, wallet entity.PlayerWallet) (isOK bool) {
 	isOK = database.AddGameResultReCountWallet(es.AddTraceMap(traceMap, sqlid.AddGameResultReCountWallet.String()), data, wallet, es.LocalNow(8))
 	if !isOK {
-		es.Error("traceMap:%s ,addGameResultAndRollHistory error", traceMap)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}
@@ -71,9 +76,14 @@ func addGameResultAndRollHistory(traceMap string, selfDefine *entity.BaseSelfDef
 // 更新錢包|betCount緩存
 func refreshWallet(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency, token string, betTimes int) interface{} {
 	database.ClearPlayerWalletCache(es.AddTraceMap(traceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
-	betCount := database.IncrConnectTokenBetCount(es.AddTraceMap(traceMap, redisid.IncrConnectTokenBetCount.String()), token, betTimes)
+	betCount, err := database.GetAccountBetCount(es.AddTraceMap(traceMap, sqlid.GetAccountBetCount.String()), token)
+	if err != nil {
+		selfDefine.ErrorCode = string(errorcode.UnknowError)
+		return nil
+	}
 	wallet, isOK := getPlayerWallet(es.AddTraceMap(traceMap, string(functionid.GetPlayerWallet)), selfDefine, account, currency)
 	if !isOK {
+		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return nil
 	}
 	return entity.GameResultResponse{

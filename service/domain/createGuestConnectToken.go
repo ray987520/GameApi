@@ -3,9 +3,9 @@ package domain
 import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	es "TestAPI/external/service"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -57,15 +57,13 @@ func genConnectToken(traceMap string, selfDefine *entity.BaseSelfDefine, account
 		Key:         fmt.Sprintf("%d_%s_%s", gameId, currency, account),
 		ExpitreTime: es.Timestamp() + 600,
 	}
-	data, err := json.Marshal(tokenData)
+	data, err := es.JsonMarshal(es.AddTraceMap(traceMap, string(esid.JsonMarshal)), tokenData)
 	if err != nil {
-		es.Error("traceMap:%s , error:%v", traceMap, err)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}
-	token, err = es.Aes128Encrypt(data)
+	token, err = es.Aes128Encrypt(es.AddTraceMap(traceMap, string(esid.Aes128Encrypt)), data)
 	if err != nil {
-		es.Error("traceMap:%s , error:%v", traceMap, err)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}

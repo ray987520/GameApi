@@ -1,6 +1,9 @@
 package es
 
 import (
+	esid "TestAPI/enum/externalserviceid"
+	"TestAPI/enum/innererror"
+	"TestAPI/external/service/zaplog"
 	"time"
 )
 
@@ -26,6 +29,16 @@ func LocalNow(areaPower int) time.Time {
 }
 
 // 依2006-01-02T15:04:05.999-07:00轉出時間字串
-func TimeString(t time.Time) string {
+func ApiTimeString(t time.Time) string {
 	return t.Format(ApiTimeFormat)
+}
+
+// 按format parse時間
+func ParseTime(traceMap, format, timeString string) (t time.Time, err error) {
+	t, err = time.Parse(format, timeString)
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.ParseTime, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", format, "timeString", timeString)
+		return
+	}
+	return
 }

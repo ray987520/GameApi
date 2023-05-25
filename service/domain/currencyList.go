@@ -41,7 +41,6 @@ func (service *CurrencyListService) Exec() (data interface{}) {
 func getSupportCurrency(traceMap string, selfDefine *entity.BaseSelfDefine) interface{} {
 	currencyList, err := database.GetCurrencyList(es.AddTraceMap(traceMap, sqlid.GetCurrencyList.String()))
 	if err != nil {
-		es.Error("traceMap:%s , error:%v", traceMap, err)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return nil
 	}

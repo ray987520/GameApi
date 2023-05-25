@@ -4,10 +4,10 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
@@ -20,7 +20,13 @@ type SettlementService struct {
 // databinding&validate
 func ParseSettlementRequest(traceMap string, r *http.Request) (request entity.SettlementRequest, err error) {
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.UnknowError)
+	}
+	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+	}
 	request.Authorization = r.Header.Get("Authorization")
 	request.ContentType = r.Header.Get("Content-Type")
 	request.TraceID = r.Header.Get("traceid")
@@ -48,7 +54,6 @@ func (service *SettlementService) Exec() (data interface{}) {
 func addUnpayActivityRank(traceMap string, selfDefine *entity.BaseSelfDefine, data entity.Settlement) (isOK bool) {
 	isOK = database.AddActivityRank(es.AddTraceMap(traceMap, sqlid.AddActivityRank.String()), data)
 	if !isOK {
-		es.Error("traceMap:%s ,AddActivityRank error", traceMap)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}

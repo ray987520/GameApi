@@ -11,4 +11,5 @@ type IRedis interface {
 	GetClient(string) redis.Conn
 	GetKeys(string, ...interface{}) ([][]byte, error)
 	IncrKey(string, string) (int64, error)
+	IncrKeyBy(string, string, int) (int64, error)
 }

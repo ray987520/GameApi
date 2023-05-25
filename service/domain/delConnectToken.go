@@ -4,10 +4,10 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
@@ -20,7 +20,15 @@ type DelConnectTokenService struct {
 // databinding&validate
 func ParseDelConnectTokenRequest(traceMap string, r *http.Request) (request entity.DelConnectTokenRequest, err error) {
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.UnknowError)
+		return
+	}
+	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+		return
+	}
 	request.Authorization = r.Header.Get("Authorization")
 	request.ContentType = r.Header.Get("Content-Type")
 	request.TraceID = r.Header.Get("traceid")
@@ -47,7 +55,6 @@ func (service *DelConnectTokenService) Exec() (data interface{}) {
 func logOutToken(traceMap string, selfDefine *entity.BaseSelfDefine, token string) (isOK bool) {
 	now := es.LocalNow(8)
 	if isOK = database.DeleteToken(es.AddTraceMap(traceMap, sqlid.DeleteToken.String()), token, now); !isOK {
-		es.Error("traceMap:%s ,logOutToken error", traceMap)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}

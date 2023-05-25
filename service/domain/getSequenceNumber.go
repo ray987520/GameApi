@@ -43,7 +43,6 @@ func (service *GetSequenceNumberService) Exec() (data interface{}) {
 func getGameSequenceNumber(traceMap string, selfDefine *entity.BaseSelfDefine) string {
 	seqNo := database.GetGameSequenceNumber(es.AddTraceMap(traceMap, redisid.GetGameSequenceNumber.String()), "")
 	if seqNo == "" {
-		es.Error("traceMap:%s ,getGameSequenceNumber error", traceMap)
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
 	return seqNo
