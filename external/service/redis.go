@@ -48,7 +48,9 @@ func init() {
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
-			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
+			if err != nil {
+				zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.ErrorTypeNode, innererror.InitRedisError, innererror.ErrorInfoNode, err)
+			}
 			return err
 		},
 	}

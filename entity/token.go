@@ -96,7 +96,7 @@ type UpdateTokenLocationRequest struct {
 // 變更令牌位置requestdata
 type UpdateTokenLocation struct {
 	Token    string `json:"connectToken" validate:"min=1"`
-	Location int    `json:"location" validate:"gte=0"`
+	Location int    `json:"location" validate:"gte=0"` //遊戲位置 (0:大廳or房號/機台號)
 }
 
 // 取得令牌資訊httprequest

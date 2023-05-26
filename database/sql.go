@@ -597,7 +597,7 @@ func GetAccountBetCount(traceMap string, account string) (count int, err error) 
 			JOIN GameToken as gt (NOLOCK)
 				ON acct.account=gt.account
 			JOIN GameResult as gr (NOLOCK)
-				ON gt.connToken=gr.connToken
+				ON gt.connectToken=gr.connectToken
 			WHERE acct.account=?`
 	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &count, sql, account)
 	if err != nil {

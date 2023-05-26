@@ -4,11 +4,15 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
+	"TestAPI/enum/innererror"
 	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/zaplog"
 	"net/http"
+	"time"
 )
 
 type RoundCheckService struct {
@@ -26,6 +30,22 @@ func ParseRoundCheckRequest(traceMap string, r *http.Request) (request entity.Ro
 	query := r.URL.Query()
 	request.FromDate = query.Get("fromDate")
 	request.ToDate = query.Get("toDate")
+	fromTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, request.FromDate)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+		return
+	}
+	toTime, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, request.ToDate)
+	if err != nil {
+		request.ErrorCode = string(errorcode.BadParameter)
+		return
+	}
+	//開始結束時間不正常或間隔超過24H
+	if toTime.Before(fromTime) || toTime.After(fromTime.Add(24*time.Hour)) {
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseRoundCheckRequest, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "request.FromDate", request.FromDate, "request.ToDate", request.ToDate)
+		request.ErrorCode = string(errorcode.BadParameter)
+		return
+	}
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return
