@@ -624,3 +624,15 @@ func GetAccountRtp(traceMap string, account string) (rtp int, err error) {
 	}
 	return
 }
+
+// TODO CUD操作還是要把rowaffect拉出來
+func TestDoubleSql() {
+	sql := `update GameToken
+			SET location=111
+			where id=1;`
+	err := sqlDb.Update(es.AddTraceMap("", string(esid.SqlUpdate)), sql)
+	if err != nil {
+		return
+	}
+	return
+}

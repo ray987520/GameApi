@@ -66,6 +66,7 @@ func (gormDB *GormDB) Select(traceMap string, model interface{}, sqlString strin
 // sql raw執行update
 func (gormDB *GormDB) Update(traceMap string, sqlString string, params ...interface{}) error {
 	tx := sqlDB.Exec(sqlString, params...)
+	fmt.Println(tx.RowsAffected)
 	if tx.Error != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlUpdate, innererror.ErrorTypeNode, innererror.UpdateError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
 	}
