@@ -78,7 +78,7 @@ func register(method, pattern string, handler http.HandlerFunc, middlewares ...m
 	routes = append(routes, Route{method, pattern, handler, middlewares})
 }
 
-/*TODO
+/*TODO 確認取IP的方式後應增加IP白名單middleware
 func IPWhiteListMiddleware
 */
 

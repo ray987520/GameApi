@@ -84,7 +84,8 @@ func currency2ExchangeRate(traceMap string, selfDefine *entity.BaseSelfDefine, c
 
 // 添加gamelog到Db“
 func addGameLog2Db(traceMap string, data *entity.AddGameLogRequest, exchangeRate decimal.Decimal) {
-	if isOK := database.AddGameLog(es.AddTraceMap(traceMap, sqlid.AddGameLog.String()), data.GameLog, exchangeRate); !isOK {
+	isOK := database.AddGameLog(es.AddTraceMap(traceMap, sqlid.AddGameLog.String()), data.GameLog, exchangeRate)
+	if !isOK {
 		data.ErrorCode = string(errorcode.UnknowError)
 	}
 }

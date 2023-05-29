@@ -52,10 +52,12 @@ func (service *DistributionService) Exec() (data interface{}) {
 		return
 	}
 	//資料沒派彩過才派彩
-	if !hasUnpayActivityDistribution(es.AddTraceMap(service.TraceMap, string(functionid.HasUnpayActivityDistribution)), &service.Request.BaseSelfDefine, service.Request.ActivityIV, service.Request.Rank) {
+	hasRecord := hasUnpayActivityDistribution(es.AddTraceMap(service.TraceMap, string(functionid.HasUnpayActivityDistribution)), &service.Request.BaseSelfDefine, service.Request.ActivityIV, service.Request.Rank)
+	if !hasRecord {
 		return
 	}
-	if isOK := activityDistribution(es.AddTraceMap(service.TraceMap, string(functionid.ActivityDistribution)), &service.Request.BaseSelfDefine, service.Request.Distribution, wallet.WalletID); !isOK {
+	isOK = activityDistribution(es.AddTraceMap(service.TraceMap, string(functionid.ActivityDistribution)), &service.Request.BaseSelfDefine, service.Request.Distribution, wallet.WalletID)
+	if !isOK {
 		return
 	}
 	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), wallet.Currency, account)
@@ -74,12 +76,13 @@ func getDistributionWallet(traceMap string, selfDefine *entity.BaseSelfDefine, d
 }
 
 // 是否有未派彩紀錄
-func hasUnpayActivityDistribution(traceMap string, selfDefine *entity.BaseSelfDefine, activityIV string, rank int) bool {
-	if !database.IsExistsUnpayActivityDistribution(es.AddTraceMap(traceMap, sqlid.IsExistsUnpayActivityDistribution.String()), activityIV, rank) {
+func hasUnpayActivityDistribution(traceMap string, selfDefine *entity.BaseSelfDefine, activityIV string, rank int) (hasRecord bool) {
+	hasRecord = database.IsExistsUnpayActivityDistribution(es.AddTraceMap(traceMap, sqlid.IsExistsUnpayActivityDistribution.String()), activityIV, rank)
+	if !hasRecord {
 		selfDefine.ErrorCode = string(errorcode.ActivityPayoutDone)
-		return false
+		return
 	}
-	return true
+	return
 }
 
 // 活動派彩

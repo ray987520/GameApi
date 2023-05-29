@@ -57,7 +57,8 @@ func (service *AuthConnectTokenService) Exec() (data interface{}) {
 	if !isOK {
 		return
 	}
-	if isOK := addConnectToken2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddConnectToken2Db)), &service.Request.BaseSelfDefine, service.Request.Token, account, currency, service.Request.Ip, gameId); !isOK {
+	isOK = addConnectToken2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddConnectToken2Db)), &service.Request.BaseSelfDefine, service.Request.Token, account, currency, service.Request.Ip, gameId)
+	if !isOK {
 		return
 	}
 	//PlayerWallet的WalletID/Currency後續有使用但不輸出於此response

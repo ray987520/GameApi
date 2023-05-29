@@ -42,12 +42,19 @@ func GetExternalErrorMessage(traceMap string, code string) (errorMessage string)
 	AND codeType=1
 	AND langCode='en-US'`
 	params := []interface{}{code}
-	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &errorMessage, sql, params...)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &errorMessage, sql, params...)
 	if err != nil {
 		errorMessage = unknowError
+		return
+	}
+	if rowCount != 1 {
+		errorMessage = unknowError
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, fmt.Errorf("GetExternalErrorMessage rowCount error"), "sql", sql, "params", params, "rowCount", rowCount)
+		return
 	}
 	if errorMessage == "" {
 		errorMessage = unknowError
+		return
 	}
 	return
 }
@@ -58,14 +65,20 @@ func GetCurrencyExchangeRate(traceMap string, currency string) (exchangeRate dec
 			FROM [Currency](nolock)
 			WHERE [currency]=?`
 	params := []interface{}{currency}
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &exchangeRate, sql, params...)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &exchangeRate, sql, params...)
 	if err != nil {
 		exchangeRate = decimal.Zero
 		return
 	}
+	if rowCount != 1 {
+		exchangeRate = decimal.Zero
+		err = fmt.Errorf("GetCurrencyExchangeRate rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params)
+		return
+	}
 	if exchangeRate.LessThanOrEqual(decimal.Zero) {
 		err = fmt.Errorf("Unknow Currency")
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "exchangeRate", exchangeRate)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "exchangeRate", exchangeRate, "rowCount", rowCount)
 		exchangeRate = decimal.Zero
 		return
 	}
@@ -99,8 +112,13 @@ func GetPlayerInfo(traceMap string, account, currency string, gameId int) (data 
 				WHERE acct.account=?
 					AND mc.currency=?`
 	params := []interface{}{gameId, account, currency}
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, params...)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, params...)
 	if err != nil {
+		return
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetPlayerInfo rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return
 	}
 	data.GameAccount = fmt.Sprintf("%d_%s", data.ChannelID, data.MemberAccount)
@@ -128,8 +146,13 @@ func AddConnectToken(traceMap string, token, account, currency, ip string, gameI
 			,[status])
 			VALUES (?,?,?,?,?,?,?,?)`
 	params := []interface{}{token, gameId, currency, account, now.Format(es.DbTimeFormat), ip, int(tokenlocation.Default), int(tokenstatus.Actived)}
-	err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
+	rowCount, err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("AddConnectToken rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddConnectToken, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -141,8 +164,13 @@ func UpdateTokenLocation(traceMap string, token string, location int) bool {
 			SET [location] = ?
  			WHERE [connectToken]=?`
 	params := []interface{}{location, token}
-	err := sqlDb.Update(es.AddTraceMap(traceMap, string(esid.SqlSelect)), sql, params...)
+	rowCount, err := sqlDb.Update(es.AddTraceMap(traceMap, string(esid.SqlSelect)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("UpdateTokenLocation rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.UpdateTokenLocation, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -152,18 +180,23 @@ func UpdateTokenLocation(traceMap string, token string, location int) bool {
 func GetTokenAlive(traceMap string, token string) (alive bool) {
 	if GetConnectTokenCache(es.AddTraceMap(traceMap, redisid.GetConnectTokenCache.String()), token) == "1" {
 		alive = true
-	} else {
-		sql := `SELECT 1 as alive
+	}
+
+	sql := `SELECT 1 as alive
 		FROM [GameToken](nolock)
 		WHERE [connectToken]=?
 		AND status=?`
-		err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &alive, sql, token, int(tokenstatus.Actived))
-		if err != nil {
-			return false
-		}
-		if alive {
-			SetConnectTokenCache(es.AddTraceMap(traceMap, redisid.SetConnectTokenCache.String()), token, 0)
-		}
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &alive, sql, token, int(tokenstatus.Actived))
+	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetTokenAlive rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetTokenAlive, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "token", token, "status", int(tokenstatus.Actived), "rowCount", rowCount)
+		return false
+	}
+	if alive {
+		SetConnectTokenCache(es.AddTraceMap(traceMap, redisid.SetConnectTokenCache.String()), token, 0)
 	}
 
 	return
@@ -176,12 +209,16 @@ func DeleteToken(traceMap string, token string, deleteTime time.Time) bool {
 				,deleteTime=?
  			WHERE [connectToken]=?`
 	params := []interface{}{int(tokenstatus.Deleted), deleteTime.Format(es.DbTimeFormat), token}
-	err := sqlDb.Update(es.AddTraceMap(traceMap, string(esid.SqlUpdate)), sql, params...)
+	rowCount, err := sqlDb.Update(es.AddTraceMap(traceMap, string(esid.SqlUpdate)), sql, params...)
 	if err != nil {
 		return false
-	} else {
-		SetConnectTokenCache(es.AddTraceMap(traceMap, redisid.SetConnectTokenCache.String()), token, 1800)
 	}
+	if rowCount != 1 {
+		err = fmt.Errorf("DeleteToken rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.DeleteToken, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
+		return false
+	}
+	SetConnectTokenCache(es.AddTraceMap(traceMap, redisid.SetConnectTokenCache.String()), token, 1800)
 	return err == nil
 }
 
@@ -228,8 +265,13 @@ func AddGameResultReCountWallet(traceMap string, data entity.GameResult, wallet 
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.CurrencyKindPayout.Sub(data.CurrencyKindBet), walletId})
-	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
+	rowCount, err := sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 3 {
+		err = fmt.Errorf("AddGameResultReCountWallet rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -265,8 +307,13 @@ func AddGameResult(traceMap string, data entity.GameResult) bool {
 	params = append(params, data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout,
 		data.CurrencyKindContribution, data.CurrencyKindJackPot, data.SequenceID, data.GameRoom, betTime.Format(es.DbTimeFormat), serverTime.Format(es.DbTimeFormat),
 		data.FreeGame, data.TurnTimes, data.BetMode)
-	err = sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
+	rowCount, err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("AddGameResult rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResult, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -282,26 +329,31 @@ func GetFinishGameResultTokenAlive(traceMap string, token string) (alive bool) {
 
 // 取玩家錢包
 func GetPlayerWallet(traceMap string, account, currency string) (data entity.PlayerWallet, err error) {
-	if data, err = GetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.GetPlayerWalletCache.String()), account, currency); err == nil && data.Currency != "" {
+	data, err = GetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.GetPlayerWalletCache.String()), account, currency)
+	if err == nil && data.Currency != "" {
 		return
-	} else {
-		sql := `SELECT [id] as walletId
+	}
+	sql := `SELECT [id] as walletId
 					,[amount] as currency
 					,[currency] as walletCurrency
 				FROM [ManCoin]
 				WHERE account=?
 				AND currency=?`
-		err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, account, currency)
-		if err != nil {
-			return
-		}
-		if data.Currency == "" {
-			err = fmt.Errorf("Get No Wallet")
-			zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data.Currency", data.Currency)
-			return
-		}
-		SetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.SetPlayerWalletCache.String()), account, currency, data)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, account, currency)
+	if err != nil {
+		return
 	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetPlayerWallet rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "account", account, "currency", currency, "rowCount", rowCount)
+		return
+	}
+	if data.Currency == "" {
+		err = fmt.Errorf("Get No Wallet")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data.Currency", data.Currency)
+		return
+	}
+	SetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.SetPlayerWalletCache.String()), account, currency, data)
 	return
 }
 
@@ -311,8 +363,13 @@ func IsExistsTokenGameResult(traceMap string, token, gameSeqNo string) (data boo
 			FROM [GameResult](nolock)
 			WHERE connectToken=?
 			AND gameSequenceNumber=?`
-	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, token, gameSeqNo)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, token, gameSeqNo)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("IsExistsTokenGameResult rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsTokenGameResult, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "token", token, "gameSeqNo", gameSeqNo, "rowCount", rowCount)
 		return false
 	}
 	return
@@ -325,8 +382,13 @@ func IsExistsRollInHistory(traceMap string, token, gameSeqNo string) (data bool)
 			FROM RollHistory(nolock)
 			WHERE connectToken=?
 			AND transId=?`
-	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, token, rollInId)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, token, rollInId)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("IsExistsRollInHistory rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRollInHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "token", token, "rollInId", rollInId, "rowCount", rowCount)
 		return false
 	}
 	return
@@ -359,8 +421,13 @@ func AddRollInHistory(traceMap string, data entity.GameResult, wallet entity.Pla
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.CurrencyKindPayout, walletId})
-	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
+	rowCount, err := sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 3 {
+		err = fmt.Errorf("AddRollInHistory rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollInHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -392,8 +459,13 @@ func AddGameLog(traceMap string, data entity.GameLog, exchangeRate decimal.Decim
 		return false
 	}
 	params = append(params, data.Token, data.GameSequenceNumber, data.SequenceID, data.GameLog, data.CurrencyKindBet.Mul(exchangeRate), data.CurrencyKindWinLose.Mul(exchangeRate), data.CurrencyKindPayout.Mul(exchangeRate), data.CurrencyKindContribution.Mul(exchangeRate), data.CurrencyKindJackPot.Mul(exchangeRate), data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout, data.CurrencyKindContribution, data.CurrencyKindJackPot, betTime.Format(es.DbTimeFormat))
-	err = sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
+	rowCount, err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("AddGameLog rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameLog, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -404,8 +476,13 @@ func GetGameLanguage(traceMap string, gameId int) (data string, err error) {
 	sql := `SELECT lang
 			FROM Game(nolock)
 			WHERE gameId=?`
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, gameId)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, gameId)
 	if err != nil {
+		return
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetGameLanguage rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetGameLanguage, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "gameId", gameId, "rowCount", rowCount)
 		return
 	}
 	return
@@ -441,8 +518,13 @@ func AddRollOutHistory(traceMap string, data entity.RollHistory, wallet entity.P
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.Amount.Neg(), walletId})
-	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
+	rowCount, err := sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 3 {
+		err = fmt.Errorf("AddRollOutHistory rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollOutHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -462,8 +544,13 @@ func AddActivityRank(traceMap string, data entity.Settlement) bool {
 				(?,?,?,?,?,?,?)`
 	params := []interface{}{}
 	params = append(params, data.ActivityIV, data.Rank, data.MemberID, data.GameSequenceNumber, data.Currency, data.Prize, int(rankstatus.UnPay))
-	err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
+	rowCount, err := sqlDb.Create(es.AddTraceMap(traceMap, string(esid.SqlCreate)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("AddActivityRank rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddActivityRank, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -478,8 +565,13 @@ func IsExistsUnpayActivityDistribution(traceMap string, activityIV string, rank 
 			AND status=?`
 	params := []interface{}{}
 	params = append(params, activityIV, rank, int(rankstatus.UnPay))
-	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, params...)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("IsExistsUnpayActivityDistribution rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsUnpayActivityDistribution, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return
@@ -507,8 +599,13 @@ func ActivityDistribution(traceMap string, data entity.Distribution, walletID st
 	}
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.PrizePayout, walletId})
-	err = sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
+	rowCount, err := sqlDb.Transaction(es.AddTraceMap(traceMap, string(esid.SqlTransaction)), sql, params...)
 	if err != nil {
+		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("ActivityDistribution rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.ActivityDistribution, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
 	return err == nil
@@ -526,8 +623,13 @@ func GetDistributionWallet(traceMap string, data entity.Distribution) (account s
 			ON A.acctId=B.memberId
 		WHERE B.[activityIV]=?
 		AND B.[rank]=?`
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &temp, sql, data.ActivityIV, data.Rank)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &temp, sql, data.ActivityIV, data.Rank)
 	if err != nil {
+		return
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetDistributionWallet rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "ActivityIV", data.ActivityIV, "Rank", data.Rank, "rowCount", rowCount)
 		return
 	}
 	wallet, err = GetPlayerWallet(es.AddTraceMap(traceMap, sqlid.GetPlayerWallet.String()), temp.Account, temp.Currency)
@@ -543,8 +645,13 @@ func GetCurrencyList(traceMap string) (list []entity.CurrencyListResponse, err e
 				,[currency]
 				,[exchangeRate]
 			FROM [Currency]`
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql)
 	if err != nil {
+		return
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetCurrencyList rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "rowCount", rowCount)
 		return
 	}
 	return
@@ -569,8 +676,15 @@ func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.
 			WHERE RO.rollTime BETWEEN ? AND ? 
 			AND RO.rollType=?
 			AND (GR.id IS NULL OR RI.id IS NULL)`
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
+	params := []interface{}{}
+	params = append(params, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql, params)
 	if err != nil {
+		return
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetRoundCheckList rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return
 	}
 	return
@@ -583,9 +697,16 @@ func IsExistsRolloutHistory(traceMap string, gameSequenceNumber string) (hasData
 			FROM RollHistory(nolock) as RO
 			WHERE RO.transId=? 
 			AND RO.rollType=?`
-	err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, rollOutId, int(rolltype.RollOut))
+	params := []interface{}{}
+	params = append(params, rollOutId, int(rolltype.RollOut))
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, params)
 	if err != nil {
 		return false
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("IsExistsRolloutHistory rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
+		return
 	}
 	return
 }
@@ -599,8 +720,13 @@ func GetAccountBetCount(traceMap string, account string) (count int, err error) 
 			JOIN GameResult as gr (NOLOCK)
 				ON gt.connectToken=gr.connectToken
 			WHERE acct.account=?`
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &count, sql, account)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &count, sql, account)
 	if err != nil {
+		return
+	}
+	if rowCount != 1 {
+		err = fmt.Errorf("GetAccountBetCount rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountBetCount, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "account", account, "rowCount", rowCount)
 		return
 	}
 	return
@@ -618,20 +744,13 @@ func GetAccountRtp(traceMap string, account string) (rtp int, err error) {
 			JOIN Platform as pf(NOLOCK)
 			ON ch.pfCode=pf.pfCode
 			WHERE acct.account=?`
-	err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &rtp, sql, account)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &rtp, sql, account)
 	if err != nil {
 		return
 	}
-	return
-}
-
-// TODO CUD操作還是要把rowaffect拉出來
-func TestDoubleSql() {
-	sql := `update GameToken
-			SET location=111
-			where id=1;`
-	err := sqlDb.Update(es.AddTraceMap("", string(esid.SqlUpdate)), sql)
-	if err != nil {
+	if rowCount != 1 {
+		err = fmt.Errorf("GetAccountRtp rowCount error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountRtp, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "account", account, "rowCount", rowCount)
 		return
 	}
 	return

@@ -78,7 +78,8 @@ func getRoundCheckList(traceMap string, selfDefine *entity.BaseSelfDefine, fromD
 	}
 	//不存在GameResult/RollIn的建立30分鐘token(redis),finishGameResultToken:[token]
 	for _, checkData := range list {
-		if isOK = database.SetFinishGameResultTokenCache(es.AddTraceMap(traceMap, redisid.SetFinishGameResultTokenCache.String()), checkData.Token); !isOK {
+		isOK = database.SetFinishGameResultTokenCache(es.AddTraceMap(traceMap, redisid.SetFinishGameResultTokenCache.String()), checkData.Token)
+		if !isOK {
 			selfDefine.ErrorCode = string(errorcode.UnknowError)
 			return
 		}

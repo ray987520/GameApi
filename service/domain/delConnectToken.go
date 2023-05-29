@@ -54,7 +54,8 @@ func (service *DelConnectTokenService) Exec() (data interface{}) {
 
 func logOutToken(traceMap string, selfDefine *entity.BaseSelfDefine, token string) (isOK bool) {
 	now := es.LocalNow(8)
-	if isOK = database.DeleteToken(es.AddTraceMap(traceMap, sqlid.DeleteToken.String()), token, now); !isOK {
+	isOK = database.DeleteToken(es.AddTraceMap(traceMap, sqlid.DeleteToken.String()), token, now)
+	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return
 	}

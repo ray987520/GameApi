@@ -77,12 +77,13 @@ func isFinishGameResultConnectTokenAlive(traceMap string, token string) bool {
 }
 
 // 判斷補單connectToken是否正常
-func isFinishGameResultConnectTokenError(traceMap string, selfDefine *entity.BaseSelfDefine, token string) bool {
-	if !isFinishGameResultConnectTokenAlive(es.AddTraceMap(traceMap, string(functionid.IsFinishGameResultConnectTokenAlive)), token) {
+func isFinishGameResultConnectTokenError(traceMap string, selfDefine *entity.BaseSelfDefine, token string) (alive bool) {
+	alive = isFinishGameResultConnectTokenAlive(es.AddTraceMap(traceMap, string(functionid.IsFinishGameResultConnectTokenAlive)), token)
+	if !alive {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
-		return true
+		return
 	}
-	return false
+	return
 }
 
 // 取玩家錢包
