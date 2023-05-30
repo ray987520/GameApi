@@ -649,7 +649,7 @@ func GetCurrencyList(traceMap string) (list []entity.CurrencyListResponse, err e
 	if err != nil {
 		return
 	}
-	if rowCount != 1 {
+	if rowCount == 0 {
 		err = fmt.Errorf("GetCurrencyList rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "rowCount", rowCount)
 		return

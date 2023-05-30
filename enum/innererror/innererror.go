@@ -13,6 +13,8 @@ const (
 	ServiceError         = "service error"          //用於zaplog,internal error type
 	ExternalServiceError = "external service error" //用於zaplog,internal error type
 	ValidRequestError    = "Bad HttpRequest"        //用於zaplog,internal error type
+	ConfigError          = "config error"           //用於zaplog,internal error type
+	PanicError           = "panic error"            //用於zaplog,internal error type
 )
 
 type RedisError string
@@ -79,4 +81,11 @@ type SonyflakeError string
 const (
 	InitFlakeError SonyflakeError = "Init SonyFlake Error"
 	GenUidError    SonyflakeError = "Uuid Gen Error"
+)
+
+type ViperError string
+
+// 列管viper error,用於zaplog分類
+const (
+	ReadConfigError ViperError = "Viper Read Config Error"
 )

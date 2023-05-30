@@ -1,6 +1,7 @@
 package es
 
 import (
+	"TestAPI/external/service/mconfig"
 	"errors"
 	"time"
 
@@ -15,8 +16,14 @@ type ConnectTokenClaims struct {
 	jwt.StandardClaims
 }
 
+const (
+	issuer = "GameAPI"
+)
+
 // jwt secret key
-var jwtSecret = []byte("agoodsecret")
+var (
+	jwtSecret = []byte(mconfig.GetString("crypt.jwtKey"))
+)
 
 // 產生JWT TOKEN
 func CreateConnectToken(traceMap string, account, currency string, gameId int) (tokenString string, err error) {
@@ -25,7 +32,7 @@ func CreateConnectToken(traceMap string, account, currency string, gameId int) (
 	claims.Account = account
 	claims.Currency = currency
 	claims.GameId = gameId
-	claims.Issuer = "GameAPI"
+	claims.Issuer = issuer
 	claims.IssuedAt = now.Unix()
 	claims.ExpiresAt = now.Add(10 * time.Minute).Unix()
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

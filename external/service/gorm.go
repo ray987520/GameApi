@@ -3,6 +3,7 @@ package es
 import (
 	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/innererror"
+	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/zaplog"
 	"encoding/json"
 	"fmt"
@@ -18,7 +19,10 @@ type GormDB struct {
 
 var (
 	sqlDB            *gorm.DB
-	sqlConnectString string
+	sqlConnectString = mconfig.GetString("sql.connectString.master")
+	maxOpenConns     = mconfig.GetInt("sql.maxOpenConns")
+	maxIdleConns     = mconfig.GetInt("sql.maxIdleConns")
+	maxIdleSecond    = mconfig.GetDuration("sql.maxIdleSecond")
 )
 
 // 取GormDB實例
@@ -28,17 +32,16 @@ func GetSqlDb() *GormDB {
 
 // 初始化,建立sql db連線與實例
 func init() {
-	sqlConnectString = "sqlserver://sa:0okmNJI(@localhost:1688?database=MYDB"
 	db, err := gorm.Open(sqlserver.Open(sqlConnectString), &gorm.Config{})
 	db.Use(dbresolver.Register(dbresolver.Config{
 		Sources:           []gorm.Dialector{sqlserver.Open(sqlConnectString)},
-		Replicas:          []gorm.Dialector{sqlserver.Open("sqlserver://sa:0okmNJI(@localhost:1688?database=MYDB")},
+		Replicas:          []gorm.Dialector{sqlserver.Open(sqlConnectString)},
 		Policy:            dbresolver.RandomPolicy{},
 		TraceResolverMode: true,
 	}).
-		SetMaxOpenConns(10).
-		SetMaxIdleConns(2).
-		SetConnMaxIdleTime(5 * time.Second))
+		SetMaxOpenConns(maxOpenConns).
+		SetMaxIdleConns(maxIdleConns).
+		SetConnMaxIdleTime(maxIdleSecond * time.Second))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlInit, innererror.ErrorTypeNode, innererror.InitGromError, innererror.ErrorInfoNode, err)
 		panic(err)

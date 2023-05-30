@@ -18,11 +18,11 @@ type GetSequenceNumbersService struct {
 
 // databinding&validate
 func ParseGetSequenceNumbersRequest(traceMap string, r *http.Request) (request entity.GetSequenceNumbersRequest, err error) {
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	query := r.URL.Query()
 	qty, err := strconv.Atoi(query.Get("quantity"))
 	if err != nil {
@@ -38,6 +38,7 @@ func ParseGetSequenceNumbersRequest(traceMap string, r *http.Request) (request e
 }
 
 func (service *GetSequenceNumbersService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	if service.Request.HasError() {
 		return
 	}

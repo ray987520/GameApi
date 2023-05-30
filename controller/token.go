@@ -5,10 +5,20 @@ import (
 	"TestAPI/enum/controllerid"
 	"TestAPI/enum/serviceid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/mconfig"
 	"TestAPI/service"
 	"net/http"
 
 	"github.com/shopspring/decimal"
+)
+
+const (
+	loadResponseChannelError = "Load Http Response Channel Error"
+	responseFormatError      = "Http Response Json Format Error"
+)
+
+var (
+	traceIdFieldName = mconfig.GetString("trace.idFieldName")
 )
 
 // @Summary	取得測試令牌1.0
@@ -27,7 +37,7 @@ func CreateGuestConnectToken(w http.ResponseWriter, r *http.Request) {
 
 // 在公用MAP註冊一個traceid(uuid)的唯一response channel
 func initResponseChannel(r *http.Request) (traceID string) {
-	traceID = r.Header.Get("traceid")
+	traceID = r.Header.Get(traceIdFieldName)
 	service.ResponseMap.Store(traceID, make(chan entity.BaseHttpResponse))
 	//service.ResponseMap[traceID] = make(chan entity.BaseHttpResponse)
 	return
@@ -43,7 +53,7 @@ func writeHttpResponse(w http.ResponseWriter, traceID string) {
 	//sync.Map不能用舊的map[key]方式取值賦值,改用sync.Map.Load取值
 	value, isOK := service.ResponseMap.Load(traceID)
 	if !isOK {
-		data = []byte("Http Response Channel Error")
+		data = []byte(loadResponseChannelError)
 	} else {
 		//先型別斷言responseChannel再取出response=>關閉responseChannel=>刪除map key
 		responseChannel := value.(chan entity.BaseHttpResponse)
@@ -55,7 +65,7 @@ func writeHttpResponse(w http.ResponseWriter, traceID string) {
 		//delete(service.ResponseMap, traceID)
 		data, err = es.JsonMarshal(traceID, response)
 		if err != nil {
-			data = []byte("Http Response Json Format Error")
+			data = []byte(responseFormatError)
 		}
 	}
 	w.Write(data)

@@ -1,0 +1,40 @@
+{
+    "application": {
+        "listenPort": ":8080"
+    },
+    "trace": {
+        "idFieldName": "traceid"
+    },
+    "log": {
+        "maxlogsize": 50,
+        "maxbackup": 300,
+        "maxage": 7,
+        "svcname": "zlog",
+        "logFilePath": "%s/%s.log",
+        "defaultLogLevel": "info"
+    },
+    "crypt": {
+        "aes128Key": "1234567887654321",
+        "jwtKey": "agoodkey"
+    },
+    "sql": {
+        "connectString": {
+            "master": "sqlserver://sa:0okmNJI(@localhost:1688?database=MYDB",
+            "slave": "sqlserver://sa:0okmNJI(@localhost:1688?database=MYDB"
+        },
+        "maxOpenConns": 10,
+        "maxIdleConns": 2,
+        "maxIdleSecond": 5
+    },
+    "redis": {
+        "connProtocol": "tcp",
+        "connServer": "127.0.0.1:6379",
+        "maxOpenConns": 10,
+        "maxIdleConns": 1,
+        "maxIdleSecond": 60
+    },
+    "core": {
+        "maxWorker": 10,
+        "maxJobQueue": 512
+    }
+}

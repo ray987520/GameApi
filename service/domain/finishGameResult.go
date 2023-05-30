@@ -28,11 +28,11 @@ func ParseFinishGameResultRequest(traceMap string, r *http.Request) (request ent
 	if err != nil {
 		request.ErrorCode = string(errorcode.BadParameter)
 	}
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return
@@ -41,6 +41,7 @@ func ParseFinishGameResultRequest(traceMap string, r *http.Request) (request ent
 }
 
 func (service *FinishGameResultService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	if service.Request.HasError() {
 		return
 	}

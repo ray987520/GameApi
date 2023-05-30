@@ -10,6 +10,10 @@ import (
 	"github.com/sony/sonyflake"
 )
 
+const (
+	sonyFlakeBaseTime = "2023-01-01 00:00:00.000" //需要設置一個固定時間起點讓sonyFlakeID的timestamp區段不重複
+)
+
 var sonyFlake *sonyflake.Sonyflake
 
 // 取機器ID
@@ -21,8 +25,7 @@ func getMachineID() (machineID uint16, err error) {
 
 // 初始化,設置sonyFlake基礎值
 func init() {
-	//需要設置一個固定時間起點讓sonyFlakeID的timestamp區段不重複
-	beginTime, err := time.Parse(DbTimeFormat, "2023-01-01 00:00:00.000")
+	beginTime, err := time.Parse(DbTimeFormat, sonyFlakeBaseTime)
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.ErrorInfoNode, err)
 		return

@@ -27,11 +27,11 @@ func ParseUpdateTokenLocationRequest(traceMap string, r *http.Request) (request 
 	if err != nil {
 		request.ErrorCode = string(errorcode.BadParameter)
 	}
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return
@@ -40,14 +40,15 @@ func ParseUpdateTokenLocationRequest(traceMap string, r *http.Request) (request 
 }
 
 func (service *UpdateTokenLocationService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	if service.Request.HasError() {
 		return
 	}
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
 		return
 	}
-	isOK := updateTokenLocation(es.AddTraceMap(service.TraceMap, string(functionid.UpdateTokenLocation)), &service.Request.BaseSelfDefine, service.Request.Token, service.Request.Location)
-	if !isOK {
+	isUpdateOK := updateTokenLocation(es.AddTraceMap(service.TraceMap, string(functionid.UpdateTokenLocation)), &service.Request.BaseSelfDefine, service.Request.Token, service.Request.Location)
+	if !isUpdateOK {
 		return
 	}
 	return

@@ -4,6 +4,7 @@ import (
 	"TestAPI/entity"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/innererror"
+	es "TestAPI/external/service"
 	"TestAPI/external/service/zaplog"
 	"net/http"
 	"regexp"
@@ -27,11 +28,11 @@ type DefaultErrorService struct {
 
 // 無法找到對應service時由此產生job承載的resquest
 func ParseDefaultError(traceMap string, r *http.Request) (request entity.DefaultError, err error) {
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	return
 }
 
@@ -56,6 +57,7 @@ func ValidateAccount(f1 validator.FieldLevel) bool {
 }
 
 func (service *DefaultErrorService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	data = ""
 	return
 }

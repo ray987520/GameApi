@@ -18,11 +18,11 @@ type CreateGuestConnectTokenService struct {
 
 // databinding&validate
 func ParseCreateGuestConnectTokenRequest(traceMap string, r *http.Request) (request entity.CreateGuestConnectTokenRequest, err error) {
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	query := r.URL.Query()
 	request.Account = query.Get("account")
 	request.Currency = query.Get("currency")
@@ -40,6 +40,7 @@ func ParseCreateGuestConnectTokenRequest(traceMap string, r *http.Request) (requ
 }
 
 func (service *CreateGuestConnectTokenService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	data = entity.CreateGuestConnectTokenResponse{}
 	if service.Request.HasError() {
 		return

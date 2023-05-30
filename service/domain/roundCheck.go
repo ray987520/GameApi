@@ -22,11 +22,11 @@ type RoundCheckService struct {
 
 // databinding&validate
 func ParseRoundCheckRequest(traceMap string, r *http.Request) (request entity.RoundCheckRequest, err error) {
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	query := r.URL.Query()
 	request.FromDate = query.Get("fromDate")
 	request.ToDate = query.Get("toDate")
@@ -54,6 +54,7 @@ func ParseRoundCheckRequest(traceMap string, r *http.Request) (request entity.Ro
 }
 
 func (service *RoundCheckService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	resp := entity.RoundCheckResponse{
 		RoundCheckList: []entity.RoundCheckToken{},
 	}

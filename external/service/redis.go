@@ -3,15 +3,19 @@ package es
 import (
 	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/innererror"
+	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/zaplog"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
 )
 
-const (
-	redisConnectProtocol = "tcp"
-	redisConnectServer   = "127.0.0.1:6379"
+var (
+	redisConnectProtocol = mconfig.GetString("redis.connProtocol")
+	redisConnectServer   = mconfig.GetString("redis.connServer")
+	maxRedisOpenConns    = mconfig.GetInt("redis.maxOpenConns")
+	maxRedisIdleConns    = mconfig.GetInt("redis.maxIdleConns")
+	maxRedisIdleSecond   = mconfig.GetDuration("redis.maxIdleSecond")
 )
 
 var redisPool *redis.Pool
@@ -27,9 +31,9 @@ func GetRedisPool() *RedisPool {
 // 初始化,連線redis
 func init() {
 	redisPool = &redis.Pool{
-		MaxIdle:     1, //空闲数
-		IdleTimeout: 60 * time.Second,
-		MaxActive:   10, //最大数
+		MaxIdle:     maxRedisIdleConns, //空闲数
+		IdleTimeout: maxRedisIdleSecond * time.Second,
+		MaxActive:   maxRedisOpenConns, //最大数
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial(redisConnectProtocol, redisConnectServer)
 			if err != nil {

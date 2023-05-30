@@ -1,6 +1,7 @@
 package zaplog
 
 import (
+	"TestAPI/external/service/mconfig"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,14 +10,6 @@ import (
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-)
-
-const (
-	maxlogsize  = 50          //每50MB切割log檔
-	maxbackup   = 300         //達300個切割開始取代舊檔
-	maxage      = 7           //log保存最大時間(days)
-	svcname     = "zlog"      //log檔名
-	logFilePath = "%s/%s.log" //log檔案路徑
 )
 
 type Level zapcore.Level
@@ -29,6 +22,15 @@ const (
 )
 
 var (
+	maxlogsize      = mconfig.GetInt("log.maxlogsize")         //每50MB切割log檔
+	maxbackup       = mconfig.GetInt("log.maxbackup")          //達300個切割開始取代舊檔
+	maxage          = mconfig.GetInt("log.maxage")             //log保存最大時間(days)
+	svcname         = mconfig.GetString("log.svcname")         //log檔名
+	logFilePath     = mconfig.GetString("log.logFilePath")     //log檔案路徑
+	defaultLogLevel = mconfig.GetString("log.defaultLogLevel") //預設log level
+)
+
+var (
 	logger      *zap.SugaredLogger //log實例
 	atomicLevel = zap.NewAtomicLevel()
 
@@ -37,8 +39,6 @@ var (
 		"info":  zapcore.InfoLevel,
 		"error": zapcore.ErrorLevel,
 	}
-
-	defaultLogLevel = "info" //預設log level
 )
 
 // 取logger層級,預設info

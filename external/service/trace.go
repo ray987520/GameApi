@@ -1,6 +1,8 @@
 package es
 
 import (
+	"TestAPI/enum/innererror"
+	"TestAPI/external/service/zaplog"
 	"fmt"
 	"runtime"
 	"strings"
@@ -32,4 +34,13 @@ func Error(any interface{}, args ...interface{}) error {
 		return err
 	}
 	return nil
+}
+
+// panic記錄,在必須停止服務且非預計的error狀態做最後記錄
+func PanicTrace(traceMap string) {
+	r := recover()
+	if r == nil {
+		return
+	}
+	zaplog.Errorw(innererror.PanicError, innererror.TraceNode, traceMap, "panic", r)
 }

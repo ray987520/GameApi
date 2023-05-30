@@ -18,11 +18,11 @@ type OrderListService struct {
 
 // databinding&validate
 func ParseOrderListRequest(traceMap string, r *http.Request) (request entity.OrderListRequest, err error) {
-	request.Authorization = r.Header.Get("Authorization")
-	request.ContentType = r.Header.Get("Content-Type")
-	request.TraceID = r.Header.Get("traceid")
-	request.RequestTime = r.Header.Get("requesttime")
-	request.ErrorCode = r.Header.Get("errorcode")
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
 	query := r.URL.Query()
 	request.Token = query.Get("connectToken")
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
@@ -33,6 +33,7 @@ func ParseOrderListRequest(traceMap string, r *http.Request) (request entity.Ord
 }
 
 func (service *OrderListService) Exec() (data interface{}) {
+	defer es.PanicTrace(service.TraceMap)
 	if service.Request.HasError() {
 		return
 	}

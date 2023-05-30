@@ -29,7 +29,14 @@ var (
 )
 
 const (
-	apitoken = "999" //api auth token
+	apitoken            = "999" //api auth token
+	responseFormatError = "Http Response Json Format Error"
+	authHeader          = "Authorization"
+	traceHeader         = "traceid"
+	requestTimeHeader   = "requesttime"
+	errorCodeHeader     = "errorcode"
+	swaggerPath         = "/swagger"
+	apiPath             = "/api"
 )
 
 // 初始化,註冊所有api controller/middleware跟api path對應
@@ -57,8 +64,8 @@ func init() {
 // 使用mux Router,分不同前路徑規則劃分為swagger|api,使用不同middleware
 func NewRouter() http.Handler {
 	r := mux.NewRouter()
-	r.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)
-	apiRouter := r.PathPrefix("/api").Subrouter()
+	r.PathPrefix(swaggerPath).Handler(httpSwagger.WrapHandler)
+	apiRouter := r.PathPrefix(apiPath).Subrouter()
 	for _, route := range routes {
 		apiRouter.Methods(route.Method).
 			Path(route.Pattern).
@@ -85,14 +92,14 @@ func IPWhiteListMiddleware
 // Auth Token驗證middleware
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		token := req.Header.Get("Authorization")
+		token := req.Header.Get(authHeader)
 		if token != apitoken {
-			reqTime := req.Header.Get("requesttime")
-			traceCode := req.Header.Get("traceid")
+			reqTime := req.Header.Get(requestTimeHeader)
+			traceCode := req.Header.Get(traceHeader)
 			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceCode, "")
 			data, err := es.JsonMarshal(traceCode, response)
 			if err != nil {
-				data = []byte("Http Response Json Format Error")
+				data = []byte(responseFormatError)
 			}
 			w.Write(data)
 			return
@@ -108,9 +115,9 @@ func TraceIDMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			return
 		}
-		req.Header.Add("traceid", traceID)
-		req.Header.Add("requesttime", es.ApiTimeString(es.LocalNow(8)))
-		req.Header.Add("errorcode", string(errorcode.Success))
+		req.Header.Add(traceHeader, traceID)
+		req.Header.Add(requestTimeHeader, es.ApiTimeString(es.LocalNow(8)))
+		req.Header.Add(errorCodeHeader, string(errorcode.Success))
 		next.ServeHTTP(w, req)
 	})
 }
