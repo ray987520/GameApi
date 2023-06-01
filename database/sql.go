@@ -401,7 +401,7 @@ func AddRollInHistory(traceMap string, data entity.GameResult, wallet entity.Pla
            ,[transId]
            ,[gameSequenceNumber]
            ,[amount]
-           ,[currnecy]
+           ,[currency]
 		   ,[rollType]
            ,[rollTime])
      	VALUES (?,?,?,?,?,?,?)`,
@@ -442,7 +442,7 @@ func AddGameLog(traceMap string, data entity.GameLog, exchangeRate decimal.Decim
 				,[gameLog]
 				,[bet]
 				,[winLose]
-				,[payout]
+				,[payOut]
 				,[contribution]
 				,[jackPot]
 				,[currencyKindBet]
@@ -495,7 +495,7 @@ func AddRollOutHistory(traceMap string, data entity.RollHistory, wallet entity.P
            ,[transId]
            ,[gameSequenceNumber]
            ,[amount]
-           ,[currnecy]
+           ,[currency]
 		   ,[rollType]
            ,[rollTime])
      	VALUES (?,?,?,?,?,?,?)`,
@@ -603,7 +603,7 @@ func ActivityDistribution(traceMap string, data entity.Distribution, walletID st
 	if err != nil {
 		return false
 	}
-	if rowCount != 1 {
+	if rowCount != 3 {
 		err = fmt.Errorf("ActivityDistribution rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.ActivityDistribution, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
@@ -678,36 +678,44 @@ func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.
 			AND (GR.id IS NULL OR RI.id IS NULL)`
 	params := []interface{}{}
 	params = append(params, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
-	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql, params)
+	_, err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql, params...)
 	if err != nil {
 		return
 	}
+	/* TODO 如果之後有限制回傳筆數
 	if rowCount != 1 {
 		err = fmt.Errorf("GetRoundCheckList rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return
 	}
+	*/
 	return
 }
 
 // 是否存在rollOut
-func IsExistsRolloutHistory(traceMap string, gameSequenceNumber string) (hasData bool) {
+func IsExistsRolloutHistory(traceMap string, gameSequenceNumber string) (hasData bool, rollOutAmount decimal.Decimal) {
 	rollOutId := fmt.Sprintf(rollOutIdFormat, gameSequenceNumber)
-	sql := `SELECT 1
+	sql := `SELECT amount
 			FROM RollHistory(nolock) as RO
 			WHERE RO.transId=? 
 			AND RO.rollType=?`
 	params := []interface{}{}
 	params = append(params, rollOutId, int(rolltype.RollOut))
-	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &hasData, sql, params)
+	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &rollOutAmount, sql, params...)
 	if err != nil {
-		return false
+		return false, decimal.Zero
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("IsExistsRolloutHistory rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
-		return
+		return false, decimal.Zero
 	}
+	if rollOutAmount.LessThanOrEqual(decimal.Zero) {
+		err = fmt.Errorf("IsExistsRolloutHistory data error")
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rollOutAmount", rollOutAmount.String())
+		return false, decimal.Zero
+	}
+	hasData = true
 	return
 }
 

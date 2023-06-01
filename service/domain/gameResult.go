@@ -77,7 +77,7 @@ func addGameResultAndRollHistory(traceMap string, selfDefine *entity.BaseSelfDef
 // 更新錢包|betCount緩存
 func refreshWallet(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency, token string, betTimes int) interface{} {
 	database.ClearPlayerWalletCache(es.AddTraceMap(traceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
-	betCount, err := database.GetAccountBetCount(es.AddTraceMap(traceMap, sqlid.GetAccountBetCount.String()), token)
+	betCount, err := database.GetAccountBetCount(es.AddTraceMap(traceMap, sqlid.GetAccountBetCount.String()), account)
 	if err != nil {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return nil

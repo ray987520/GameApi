@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 type RollInService struct {
@@ -53,8 +55,13 @@ func (service *RollInService) Exec() (data interface{}) {
 	if account == "" {
 		return
 	}
-	hasRollOut := hasRollOutHistory(es.AddTraceMap(service.TraceMap, string(functionid.HasRollOutHistory)), &service.Request.BaseSelfDefine, service.Request.GameSequenceNumber)
+	hasRollOut, rollOutAmount := hasRollOutHistory(es.AddTraceMap(service.TraceMap, string(functionid.HasRollOutHistory)), &service.Request.BaseSelfDefine, service.Request.GameSequenceNumber)
 	if !hasRollOut {
+		return
+	}
+	//TOCHECK 理論上rollout amount應等於rollint bet
+	if !rollOutAmount.Equal(service.Request.CurrencyKindBet) {
+		service.Request.ErrorCode = string(errorcode.BadParameter)
 		return
 	}
 	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
@@ -75,8 +82,8 @@ func (service *RollInService) Exec() (data interface{}) {
 }
 
 // 防呆,檢查要先有rollOut
-func hasRollOutHistory(traceMap string, selfDefine *entity.BaseSelfDefine, seqNo string) (hasData bool) {
-	hasData = database.IsExistsRolloutHistory(es.AddTraceMap(traceMap, sqlid.IsExistsRolloutHistory.String()), seqNo)
+func hasRollOutHistory(traceMap string, selfDefine *entity.BaseSelfDefine, seqNo string) (hasData bool, rollOutAmount decimal.Decimal) {
+	hasData, rollOutAmount = database.IsExistsRolloutHistory(es.AddTraceMap(traceMap, sqlid.IsExistsRolloutHistory.String()), seqNo)
 	if !hasData {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return

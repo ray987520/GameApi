@@ -61,7 +61,7 @@ func init() {
 func (gormDB *GormDB) Select(traceMap string, model interface{}, sqlString string, params ...interface{}) (rowsAffect int64, err error) {
 	tx := sqlDB.Raw(sqlString, params...).Scan(model)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlSelect, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlSelect, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
 	}
 	return tx.RowsAffected, tx.Error
 }
@@ -70,7 +70,7 @@ func (gormDB *GormDB) Select(traceMap string, model interface{}, sqlString strin
 func (gormDB *GormDB) Update(traceMap string, sqlString string, params ...interface{}) (rowsAffect int64, err error) {
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlUpdate, innererror.ErrorTypeNode, innererror.UpdateError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlUpdate, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.UpdateError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
 	}
 	return tx.RowsAffected, tx.Error
 }
@@ -79,7 +79,7 @@ func (gormDB *GormDB) Update(traceMap string, sqlString string, params ...interf
 func (gormDB *GormDB) Delete(traceMap string, sqlString string, params ...interface{}) (rowsAffect int64, err error) {
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlDelete, innererror.ErrorTypeNode, innererror.DeleteError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlDelete, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.DeleteError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
 	}
 	return tx.RowsAffected, tx.Error
 }
@@ -88,7 +88,7 @@ func (gormDB *GormDB) Delete(traceMap string, sqlString string, params ...interf
 func (gormDB *GormDB) Create(traceMap string, sqlString string, params ...interface{}) (rowsAffect int64, err error) {
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlCreate, innererror.ErrorTypeNode, innererror.CreateError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlCreate, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.CreateError, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
 	}
 	return tx.RowsAffected, tx.Error
 }
@@ -97,7 +97,7 @@ func (gormDB *GormDB) Create(traceMap string, sqlString string, params ...interf
 func (gormDB *GormDB) BatchCreate(traceMap string, tableName string, datas interface{}, batchSize int) (rowsAffect int64, err error) {
 	tx := sqlDB.Table(tableName).CreateInBatches(datas, batchSize)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlBatchCreate, innererror.ErrorTypeNode, innererror.BatchCreateError, innererror.ErrorInfoNode, tx.Error, "tableName", tableName, "datas", datas)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlBatchCreate, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.BatchCreateError, innererror.ErrorInfoNode, tx.Error, "tableName", tableName, "datas", datas)
 	}
 	return tx.RowsAffected, tx.Error
 }
@@ -146,14 +146,14 @@ func (gormDB *GormDB) Transaction(traceMap string, sqlStrings []string, params .
 			if params != nil {
 				partwork := tx.Exec(sql, params[i]...)
 				if partwork.Error != nil {
-					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.ErrorTypeNode, innererror.TransactionError, innererror.ErrorInfoNode, partwork.Error, "sql", sql, "params", params[i])
+					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.TransactionError, innererror.ErrorInfoNode, partwork.Error, "sql", sql, "params", params[i])
 					return partwork.Error
 				}
 				rowsAffect += partwork.RowsAffected
 			} else {
 				partwork := tx.Exec(sql)
 				if partwork.Error != nil {
-					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.ErrorTypeNode, innererror.TransactionError, innererror.ErrorInfoNode, partwork.Error, "sql", sql)
+					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.TraceNode, traceMap, innererror.ErrorTypeNode, innererror.TransactionError, innererror.ErrorInfoNode, partwork.Error, "sql", sql)
 					return partwork.Error
 				}
 				rowsAffect += partwork.RowsAffected

@@ -65,7 +65,10 @@ func (pool *RedisPool) GetKey(traceMap string, key string) (value []byte, err er
 	conn := redisPool.Get()
 	defer conn.Close()
 	value, err = redis.Bytes(conn.Do("GET", key))
-	zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKey, innererror.ErrorTypeNode, innererror.GetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
+	if err != nil {
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKey, innererror.ErrorTypeNode, innererror.GetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
+		return
+	}
 	return
 }
 
