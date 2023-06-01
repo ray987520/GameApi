@@ -18,7 +18,7 @@ var sonyFlake *sonyflake.Sonyflake
 
 // 取機器ID
 func getMachineID() (machineID uint16, err error) {
-	//TODO 暫時使用一個假的machineID,後續應有環境變數或其他方式提供機器ID
+	//*TODO 暫時使用一個假的machineID,後續應有環境變數或其他方式提供機器ID
 	machineID = 1688
 	return
 }

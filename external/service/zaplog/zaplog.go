@@ -50,7 +50,7 @@ func getLoggerLevel(lvl string) zapcore.Level {
 }
 
 // 用於動態調整logger層級
-// TODO 提供一個API便於程式執行時切換logger層級
+// *TODO 提供一個API便於程式執行時切換logger層級
 func SetLoggerLevel(lvl string) {
 	filePath := getFilePath()
 	level := getLoggerLevel(lvl)

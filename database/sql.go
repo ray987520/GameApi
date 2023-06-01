@@ -367,9 +367,7 @@ func IsExistsTokenGameResult(traceMap string, token, gameSeqNo string) (data boo
 	if err != nil {
 		return false
 	}
-	if rowCount != 1 {
-		err = fmt.Errorf("IsExistsTokenGameResult rowCount error")
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsTokenGameResult, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "token", token, "gameSeqNo", gameSeqNo, "rowCount", rowCount)
+	if rowCount == 0 {
 		return false
 	}
 	return
@@ -386,9 +384,7 @@ func IsExistsRollInHistory(traceMap string, token, gameSeqNo string) (data bool)
 	if err != nil {
 		return false
 	}
-	if rowCount != 1 {
-		err = fmt.Errorf("IsExistsRollInHistory rowCount error")
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRollInHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "token", token, "rollInId", rollInId, "rowCount", rowCount)
+	if rowCount == 0 {
 		return false
 	}
 	return
@@ -682,7 +678,7 @@ func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.
 	if err != nil {
 		return
 	}
-	/* TODO 如果之後有限制回傳筆數
+	/* *TODO 如果之後有限制回傳筆數
 	if rowCount != 1 {
 		err = fmt.Errorf("GetRoundCheckList rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)

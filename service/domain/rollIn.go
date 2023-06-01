@@ -59,7 +59,7 @@ func (service *RollInService) Exec() (data interface{}) {
 	if !hasRollOut {
 		return
 	}
-	//TOCHECK 理論上rollout amount應等於rollint bet
+	//*TOCHECK 理論上rollout amount應等於rollint bet
 	if !rollOutAmount.Equal(service.Request.CurrencyKindBet) {
 		service.Request.ErrorCode = string(errorcode.BadParameter)
 		return

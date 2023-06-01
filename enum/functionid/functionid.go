@@ -3,7 +3,7 @@ package functionid
 type FunctionId string
 
 // 列管所有domain service內的function,用於traceMap,對應service所以特定編號
-// TODO 後續量比較多的話應該拉出一個function層重編為流水號
+// *TODO 後續量比較多的話應該拉出一個function層重編為流水號
 const (
 	ParseCreateGuestConnectTokenRequest FunctionId = "FC1.0.0"
 	GenConnectToken                     FunctionId = "FC1.0.1"

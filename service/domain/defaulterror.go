@@ -16,7 +16,7 @@ var validate *validator.Validate
 
 func init() {
 	//初始化驗證器並註冊自訂驗證器
-	//TODO 若有需要其他語言錯誤訊息也需要在此添加翻譯元件
+	//*TODO 若有需要其他語言錯誤訊息也需要在此添加翻譯元件
 	validate = validator.New()
 	validate.RegisterValidation("acct", ValidateAccount) //自訂帳號驗證器
 }
