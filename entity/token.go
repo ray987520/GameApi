@@ -44,6 +44,10 @@ type AuthConnectTokenRequest struct {
 	AuthConnectToken
 }
 
+func (req *AuthConnectTokenRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
 // 令牌登入requestdata
 type AuthConnectToken struct {
 	Token string `json:"connectToken" validate:"min=1"`
@@ -93,6 +97,10 @@ type UpdateTokenLocationRequest struct {
 	UpdateTokenLocation
 }
 
+func (req *UpdateTokenLocationRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
 // 變更令牌位置requestdata
 type UpdateTokenLocation struct {
 	Token    string `json:"connectToken" validate:"min=1"`
@@ -129,4 +137,8 @@ type DelConnectTokenRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	Token string `json:"connectToken" validate:"min=1"`
+}
+
+func (req *DelConnectTokenRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
 }

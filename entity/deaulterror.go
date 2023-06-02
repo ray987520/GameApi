@@ -1,6 +1,14 @@
 package entity
 
-//預設錯誤httprequest
+const (
+	authHeader        = "Authorization"
+	contentTypeHeader = "Content-Type"
+	traceHeader       = "traceid"
+	requestTimeHeader = "requesttime"
+	errorCodeHeader   = "errorcode"
+)
+
+// 預設錯誤httprequest
 type DefaultError struct {
 	BaseHttpRequest
 	BaseSelfDefine

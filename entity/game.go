@@ -1,15 +1,23 @@
 package entity
 
-import "github.com/shopspring/decimal"
+import (
+	"net/http"
 
-//寫入賽果(拉霸)httprequest
+	"github.com/shopspring/decimal"
+)
+
+// 寫入賽果(拉霸)httprequest
 type GameResultRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	GameResult
 }
 
-//寫入賽果(拉霸)requestdata
+func (req *GameResultRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
+// 寫入賽果(拉霸)requestdata
 type GameResult struct {
 	Token                    string          `json:"connectToken" validate:"min=1"`
 	GameSequenceNumber       string          `json:"gameSequenceNumber" validate:"min=1"`
@@ -27,34 +35,50 @@ type GameResult struct {
 	BetMode                  int             `json:"betMode" validate:"oneof=0 1 2 3"`
 }
 
-//寫入賽果(拉霸)responsedata
+// 寫入賽果(拉霸)responsedata
 type GameResultResponse struct {
 	Currency string          `json:"currency"`
 	Amount   decimal.Decimal `json:"amount"`
 	BetCount int             `json:"betCount"`
 }
 
-//補寫賽果(捕魚)httprequest
+// 補寫賽果(捕魚)httprequest
 type FinishGameResultRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	FinishGameResult
 }
 
-//補寫賽果(捕魚)requestdata
+func (req *FinishGameResultRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
+// 補寫賽果(捕魚)requestdata
 type FinishGameResult struct {
 	GameResult
 	TransID string `json:"transID" validate:"startswith=rollOut-"`
 }
 
-//寫遊戲紀錄httprequest
+// 寫遊戲紀錄httprequest
 type AddGameLogRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	GameLog
 }
 
-//寫遊戲紀錄requestdata
+func (req *AddGameLogRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
+func (request *AddGameLogRequest) ReadHttpHeader(r *http.Request) {
+	request.Authorization = r.Header.Get(authHeader)
+	request.ContentType = r.Header.Get(contentTypeHeader)
+	request.TraceID = r.Header.Get(traceHeader)
+	request.RequestTime = r.Header.Get(requestTimeHeader)
+	request.ErrorCode = r.Header.Get(errorCodeHeader)
+}
+
+// 寫遊戲紀錄requestdata
 type GameLog struct {
 	Token                    string          `json:"connectToken" validate:"min=1"`
 	GameSequenceNumber       string          `json:"gameSequenceNumber" validate:"min=1"`

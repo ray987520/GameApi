@@ -6,7 +6,6 @@ import (
 	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/zaplog"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"gorm.io/driver/sqlserver"
@@ -52,8 +51,10 @@ func init() {
 		panic(err)
 	}
 	data, _ := json.Marshal(sqlDb.Stats())
+
 	//初始化後列印DB狀態
-	fmt.Println(string(data))
+	zaplog.Info(string(data))
+
 	sqlDB = db
 }
 

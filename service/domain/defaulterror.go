@@ -2,10 +2,14 @@ package domain
 
 import (
 	"TestAPI/entity"
+	"TestAPI/enum/errorcode"
+	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/innererror"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/zaplog"
+	iface "TestAPI/interface"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 
@@ -28,6 +32,7 @@ type DefaultErrorService struct {
 
 // 無法找到對應service時由此產生job承載的resquest
 func ParseDefaultError(traceMap string, r *http.Request) (request entity.DefaultError, err error) {
+	//read request header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
@@ -57,11 +62,31 @@ func ValidateAccount(f1 validator.FieldLevel) bool {
 }
 
 func (service *DefaultErrorService) Exec() (data interface{}) {
+	//catch panic
 	defer es.PanicTrace(service.TraceMap)
+
 	data = ""
 	return
 }
 
-func (service *DefaultErrorService) GetBaseSelfDefine() (selfDefine entity.BaseSelfDefine) {
+func (service *DefaultErrorService) GetBaseSelfDefine() entity.BaseSelfDefine {
 	return service.Request.BaseSelfDefine
+}
+
+func readHttpRequestBody(traceMap string, r *http.Request, request iface.IRequest) ([]byte, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		request.SetErrorCode(string(errorcode.BadParameter))
+		return nil, err
+	}
+	return body, nil
+}
+
+func parseJsonBody(traceMap string, body []byte, request iface.IRequest) error {
+	err := es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+	if err != nil {
+		request.SetErrorCode(string(errorcode.BadParameter))
+		return err
+	}
+	return nil
 }

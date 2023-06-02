@@ -20,8 +20,10 @@ func ParseGetConnectTokenAmountRequest(traceMap string, r *http.Request) (reques
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
+
 	query := r.URL.Query()
 	request.Token = query.Get("connectToken")
+
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return

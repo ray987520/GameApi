@@ -12,8 +12,9 @@ func JsonMarshal(traceMap string, v any) (data []byte, err error) {
 	data, err = json.Marshal(v)
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JsonMarshal, innererror.ErrorInfoNode, innererror.JsonMarshalError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "v", v)
+		return nil, err
 	}
-	return
+	return data, nil
 }
 
 // Json反序列化,v請傳址

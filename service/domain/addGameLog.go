@@ -4,11 +4,9 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/shopspring/decimal"
@@ -29,47 +27,56 @@ type AddGameLogService struct {
 
 // databinding&validate
 func ParseAddGameLogRequest(traceMap string, r *http.Request) (request entity.AddGameLogRequest, err error) {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		request.ErrorCode = string(errorcode.UnknowError)
 		return
 	}
-	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
+
+	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		request.ErrorCode = string(errorcode.BadParameter)
 		return
 	}
+
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
+
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *AddGameLogService) Exec() (data interface{}) {
+	//catch panic
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
-		return
+		return nil
 	}
+
+	//從token取出currency
 	var currency string
 	if _, currency, _ = parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true); currency == "" {
-		return
+		return nil
 	}
+
 	//取匯率,後續計算統一幣值部分
 	exchangeRate := currency2ExchangeRate(es.AddTraceMap(service.TraceMap, string(functionid.Currency2ExchangeRate)), &service.Request.BaseSelfDefine, currency)
 	if exchangeRate == decimal.Zero {
-		return
+		return nil
 	}
+
+	//insert gamelog
 	addGameLog2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddGameLog2Db)), &service.Request, exchangeRate)
-	return
+	return nil
 }
 
 // 判斷connectToken是否正常
@@ -99,6 +106,6 @@ func addGameLog2Db(traceMap string, data *entity.AddGameLogRequest, exchangeRate
 	}
 }
 
-func (service *AddGameLogService) GetBaseSelfDefine() (selfDefine entity.BaseSelfDefine) {
+func (service *AddGameLogService) GetBaseSelfDefine() entity.BaseSelfDefine {
 	return service.Request.BaseSelfDefine
 }

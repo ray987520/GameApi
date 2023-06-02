@@ -9,6 +9,10 @@ type SettlementRequest struct {
 	Settlement
 }
 
+func (req *SettlementRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
 //活動結算requestdata
 type Settlement struct {
 	ActivityIV         string          `json:"activityIV" validate:"min=1"`
@@ -24,6 +28,10 @@ type DistributionRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	Distribution
+}
+
+func (req *DistributionRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
 }
 
 //活動派獎requestdata

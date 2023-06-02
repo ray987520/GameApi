@@ -27,6 +27,7 @@ func ParseRoundCheckRequest(traceMap string, r *http.Request) (request entity.Ro
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
+
 	query := r.URL.Query()
 	request.FromDate = query.Get("fromDate")
 	request.ToDate = query.Get("toDate")
@@ -46,6 +47,7 @@ func ParseRoundCheckRequest(traceMap string, r *http.Request) (request entity.Ro
 		request.ErrorCode = string(errorcode.BadParameter)
 		return
 	}
+
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return

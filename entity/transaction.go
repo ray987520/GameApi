@@ -9,6 +9,10 @@ type RollOutRequest struct {
 	RollHistory
 }
 
+func (req *RollOutRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
 //遊戲錢包出入帳history
 type RollHistory struct {
 	Token              string          `json:"connectToken" validate:"min=1"`
@@ -31,6 +35,10 @@ type RollInRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	RollInHistory
+}
+
+func (req *RollInRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
 }
 
 //遊戲錢包轉至個人錢包responsedata

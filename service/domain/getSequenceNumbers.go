@@ -23,6 +23,7 @@ func ParseGetSequenceNumbersRequest(traceMap string, r *http.Request) (request e
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
+
 	query := r.URL.Query()
 	qty, err := strconv.Atoi(query.Get("quantity"))
 	if err != nil {
@@ -30,6 +31,7 @@ func ParseGetSequenceNumbersRequest(traceMap string, r *http.Request) (request e
 		return
 	}
 	request.Quantity = qty
+
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return

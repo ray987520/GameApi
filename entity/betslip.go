@@ -18,6 +18,10 @@ type GetSequenceNumbersRequest struct {
 	Quantity int `json:"quantity" validate:"min=1,max=50"`
 }
 
+func (req *GetSequenceNumbersRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
 //取多將號responsedata
 type GetSequenceNumbersResponse struct {
 	SequenceNumber []string `json:"sequenceNumber"`
