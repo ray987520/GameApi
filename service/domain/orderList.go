@@ -7,6 +7,7 @@ import (
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/mconfig"
 	"fmt"
 	"net/http"
 )
@@ -29,28 +30,33 @@ func ParseOrderListRequest(traceMap string, r *http.Request) (request entity.Ord
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *OrderListService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
+	//wrong gameId
 	_, _, gameId := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
 	if gameId == 0 {
-		return
+		return nil
 	}
+
+	//no lang-Code
 	lang := getGameLanguage(es.AddTraceMap(service.TraceMap, string(functionid.GetGameLanguage)), &service.Request.BaseSelfDefine, gameId)
 	if lang == "" {
-		return
+		return nil
 	}
-	data = entity.OrderListResponse{
+
+	return entity.OrderListResponse{
 		Url: getReportUrl(es.AddTraceMap(service.TraceMap, string(functionid.GetReportUrl)), lang, service.Request.Token),
 	}
-	return
 }
 
 // 用gameId取出遊戲的語系
@@ -65,12 +71,15 @@ func getGameLanguage(traceMap string, selfDefine *entity.BaseSelfDefine, gameId 
 
 // 組合歷史紀錄網址
 func getReportUrl(traceMap string, lang, token string) string {
-	reportUrl := "https://www.gameReport.com"
+	reportUrl := mconfig.GetString("api.report.historyReportUrl")
+
+	//如果是zh-CN/zh-TW統一為zh-CN,其他預設en-US
 	if lang == "zh-CN" || lang == "zh-TW" {
 		lang = "zh-CN"
 	} else {
 		lang = "en-US"
 	}
+
 	return fmt.Sprintf("%s?gametoken=%s&language=%s", reportUrl, token, lang)
 }
 

@@ -27,9 +27,9 @@ func ParseCurrencyListRequest(traceMap string, r *http.Request) (request entity.
 	//validate request
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *CurrencyListService) Exec() interface{} {
@@ -40,8 +40,7 @@ func (service *CurrencyListService) Exec() interface{} {
 		return nil
 	}
 
-	data := getSupportCurrency(es.AddTraceMap(service.TraceMap, string(functionid.GetSupportCurrency)), &service.Request.BaseSelfDefine)
-	return data
+	return getSupportCurrency(es.AddTraceMap(service.TraceMap, string(functionid.GetSupportCurrency)), &service.Request.BaseSelfDefine)
 }
 
 // 取支援的Currency清單

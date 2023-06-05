@@ -19,12 +19,12 @@ type UpdateTokenLocationService struct {
 func ParseUpdateTokenLocationRequest(traceMap string, r *http.Request) (request entity.UpdateTokenLocationRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -35,24 +35,27 @@ func ParseUpdateTokenLocationRequest(traceMap string, r *http.Request) (request 
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *UpdateTokenLocationService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
-		return
+		return nil
 	}
+
 	isUpdateOK := updateTokenLocation(es.AddTraceMap(service.TraceMap, string(functionid.UpdateTokenLocation)), &service.Request.BaseSelfDefine, service.Request.Token, service.Request.Location)
 	if !isUpdateOK {
-		return
+		return nil
 	}
-	return
+	return nil
 }
 
 // 更新connectToken location
@@ -61,7 +64,7 @@ func updateTokenLocation(traceMap string, selfDefine *entity.BaseSelfDefine, tok
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
-	return
+	return isOK
 }
 
 // 檢查aes token活耀

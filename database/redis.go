@@ -44,9 +44,6 @@ func GetConnectTokenCache(traceMap string, token string) string {
 func SetConnectTokenCache(traceMap string, token string, ttl int) bool {
 	key := fmt.Sprintf(gameTokenKey, token)
 	err := redisPool.SetKey(es.AddTraceMap(traceMap, string(esid.RedisSetKey)), key, []byte("1"), ttl)
-	if err != nil {
-		return false
-	}
 	return err == nil
 }
 
@@ -55,10 +52,7 @@ func ClearPlayerInfoCache(traceMap string, data entity.AuthConnectTokenResponse)
 	baseKey := fmt.Sprintf(playerInfoKey, data.GameID, data.PlayerBase.Currency, data.MemberAccount)
 	walletKey := fmt.Sprintf(playerWalletKey, data.PlayerBase.Currency, data.MemberAccount)
 	err := redisPool.DeleteKey(es.AddTraceMap(traceMap, string(esid.RedisDeleteKey)), baseKey, walletKey)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // 取玩家基本資料
@@ -67,21 +61,23 @@ func GetPlayerInfoCache(traceMap string, account, currency string, gameId int) (
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	values, err := redisPool.GetKeys(es.AddTraceMap(traceMap, string(esid.RedisGetKeys)), baseKey, walletKey)
 	if err != nil {
-		return
+		return entity.PlayerBase{}, entity.PlayerWallet{}, err
 	}
+	//playerinfo/wallet的cache分開存放,所以應該取回2筆
 	if len(values) != 2 {
+		err = fmt.Errorf("GetPlayerInfoCache cache error ,count:%d", len(values))
 		zaplog.Errorw(innererror.DBRedisError, innererror.FunctionNode, redisid.GetPlayerInfoCache, innererror.ErrorTypeNode, innererror.GetKeysPartialError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "baseKey", baseKey, "walletKey", walletKey)
-		return
+		return entity.PlayerBase{}, entity.PlayerWallet{}, err
 	}
 	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), values[0], &base)
 	if err != nil {
-		return
+		return entity.PlayerBase{}, entity.PlayerWallet{}, err
 	}
 	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), values[1], &wallet)
 	if err != nil {
-		return
+		return entity.PlayerBase{}, entity.PlayerWallet{}, err
 	}
-	return
+	return base, wallet, nil
 }
 
 // 設置玩家基本資料
@@ -111,9 +107,6 @@ func setKey(traceMap string, key string, data interface{}, ttl int) bool {
 		return false
 	}
 	err = redisPool.SetKey(es.AddTraceMap(traceMap, string(esid.RedisSetKey)), key, byteData, ttl)
-	if err != nil {
-		return false
-	}
 	return err == nil
 }
 
@@ -167,13 +160,13 @@ func GetPlayerWalletCache(traceMap string, account, currency string) (wallet ent
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	data, err := redisPool.GetKey(es.AddTraceMap(traceMap, string(esid.RedisGetKey)), walletKey)
 	if err != nil {
-		return
+		return entity.PlayerWallet{}, err
 	}
 	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), data, &wallet)
 	if err != nil {
-		return
+		return entity.PlayerWallet{}, err
 	}
-	return
+	return wallet, nil
 }
 
 // 設置玩家錢包緩存
@@ -184,18 +177,12 @@ func SetPlayerWalletCache(traceMap string, account, currency string, data entity
 		return false
 	}
 	err = redisPool.SetKey(es.AddTraceMap(traceMap, string(esid.RedisSetKey)), walletKey, byteData, 10)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // 清除玩家錢包緩存
 func ClearPlayerWalletCache(traceMap string, currency, account string) bool {
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	err := redisPool.DeleteKey(es.AddTraceMap(traceMap, string(esid.RedisDeleteKey)), walletKey)
-	if err != nil {
-		return false
-	}
 	return err == nil
 }

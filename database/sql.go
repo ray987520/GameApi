@@ -44,19 +44,16 @@ func GetExternalErrorMessage(traceMap string, code string) (errorMessage string)
 	params := []interface{}{code}
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &errorMessage, sql, params...)
 	if err != nil {
-		errorMessage = unknowError
-		return
+		return unknowError
 	}
 	if rowCount != 1 {
-		errorMessage = unknowError
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, fmt.Errorf("GetExternalErrorMessage rowCount error"), "sql", sql, "params", params, "rowCount", rowCount)
-		return
+		return unknowError
 	}
 	if errorMessage == "" {
-		errorMessage = unknowError
-		return
+		return unknowError
 	}
-	return
+	return errorMessage
 }
 
 // 取匯率
@@ -67,22 +64,19 @@ func GetCurrencyExchangeRate(traceMap string, currency string) (exchangeRate dec
 	params := []interface{}{currency}
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &exchangeRate, sql, params...)
 	if err != nil {
-		exchangeRate = decimal.Zero
-		return
+		return decimal.Zero, err
 	}
 	if rowCount != 1 {
-		exchangeRate = decimal.Zero
 		err = fmt.Errorf("GetCurrencyExchangeRate rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params)
-		return
+		return decimal.Zero, err
 	}
 	if exchangeRate.LessThanOrEqual(decimal.Zero) {
-		err = fmt.Errorf("Unknow Currency")
+		err = fmt.Errorf("Unknow Currency:%s", currency)
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "exchangeRate", exchangeRate, "rowCount", rowCount)
-		exchangeRate = decimal.Zero
-		return
+		return decimal.Zero, err
 	}
-	return
+	return exchangeRate, nil
 }
 
 // 取玩家資訊
@@ -114,23 +108,23 @@ func GetPlayerInfo(traceMap string, account, currency string, gameId int) (data 
 	params := []interface{}{gameId, account, currency}
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, params...)
 	if err != nil {
-		return
+		return entity.AuthConnectTokenResponse{}, err
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("GetPlayerInfo rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
-		return
+		return entity.AuthConnectTokenResponse{}, err
 	}
 	data.GameAccount = fmt.Sprintf("%d_%s", data.ChannelID, data.MemberAccount)
 	data.BetCount, err = GetAccountBetCount(es.AddTraceMap(traceMap, sqlid.GetAccountBetCount.String()), account)
 	if err != nil {
-		return
+		return entity.AuthConnectTokenResponse{}, err
 	}
 	data.RTP, err = GetAccountRtp(es.AddTraceMap(traceMap, sqlid.GetAccountRtp.String()), account)
 	if err != nil {
-		return
+		return entity.AuthConnectTokenResponse{}, err
 	}
-	return
+	return data, nil
 }
 
 // 建立連線token
@@ -179,7 +173,7 @@ func UpdateTokenLocation(traceMap string, token string, location int) bool {
 // 連線token是否存活
 func GetTokenAlive(traceMap string, token string) (alive bool) {
 	if GetConnectTokenCache(es.AddTraceMap(traceMap, redisid.GetConnectTokenCache.String()), token) == "1" {
-		alive = true
+		return true
 	}
 
 	sql := `SELECT 1 as alive
@@ -199,7 +193,7 @@ func GetTokenAlive(traceMap string, token string) (alive bool) {
 		SetConnectTokenCache(es.AddTraceMap(traceMap, redisid.SetConnectTokenCache.String()), token, 0)
 	}
 
-	return
+	return alive
 }
 
 // 登出刪除連線token
@@ -321,17 +315,14 @@ func AddGameResult(traceMap string, data entity.GameResult) bool {
 
 // 補單token是否存活
 func GetFinishGameResultTokenAlive(traceMap string, token string) (alive bool) {
-	if GetFinishGameResultTokenCache(es.AddTraceMap(traceMap, redisid.GetFinishGameResultTokenCache.String()), token) == "1" {
-		alive = true
-	}
-	return
+	return GetFinishGameResultTokenCache(es.AddTraceMap(traceMap, redisid.GetFinishGameResultTokenCache.String()), token) == "1"
 }
 
 // 取玩家錢包
 func GetPlayerWallet(traceMap string, account, currency string) (data entity.PlayerWallet, err error) {
 	data, err = GetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.GetPlayerWalletCache.String()), account, currency)
 	if err == nil && data.Currency != "" {
-		return
+		return entity.PlayerWallet{}, nil
 	}
 	sql := `SELECT [id] as walletId
 					,[amount] as currency
@@ -341,20 +332,20 @@ func GetPlayerWallet(traceMap string, account, currency string) (data entity.Pla
 				AND currency=?`
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, account, currency)
 	if err != nil {
-		return
+		return entity.PlayerWallet{}, err
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("GetPlayerWallet rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "account", account, "currency", currency, "rowCount", rowCount)
-		return
+		return entity.PlayerWallet{}, err
 	}
 	if data.Currency == "" {
-		err = fmt.Errorf("Get No Wallet")
+		err = fmt.Errorf("GetPlayerWallet no wallet")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data.Currency", data.Currency)
-		return
+		return entity.PlayerWallet{}, err
 	}
 	SetPlayerWalletCache(es.AddTraceMap(traceMap, redisid.SetPlayerWalletCache.String()), account, currency, data)
-	return
+	return data, nil
 }
 
 // 以connectToken/將號取GameResult是否存在
@@ -370,7 +361,7 @@ func IsExistsTokenGameResult(traceMap string, token, gameSeqNo string) (data boo
 	if rowCount == 0 {
 		return false
 	}
-	return
+	return data
 }
 
 // 以connectToken/將號取RollInHistory是否存在
@@ -387,7 +378,7 @@ func IsExistsRollInHistory(traceMap string, token, gameSeqNo string) (data bool)
 	if rowCount == 0 {
 		return false
 	}
-	return
+	return data
 }
 
 // RollIn並更新錢包
@@ -474,14 +465,14 @@ func GetGameLanguage(traceMap string, gameId int) (data string, err error) {
 			WHERE gameId=?`
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &data, sql, gameId)
 	if err != nil {
-		return
+		return "", err
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("GetGameLanguage rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetGameLanguage, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "gameId", gameId, "rowCount", rowCount)
-		return
+		return "", err
 	}
-	return
+	return data, nil
 }
 
 // RollOut並更新錢包
@@ -570,7 +561,7 @@ func IsExistsUnpayActivityDistribution(traceMap string, activityIV string, rank 
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsUnpayActivityDistribution, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rowCount", rowCount)
 		return false
 	}
-	return
+	return hasData
 }
 
 // 派彩並更新錢包
@@ -621,18 +612,18 @@ func GetDistributionWallet(traceMap string, data entity.Distribution) (account s
 		AND B.[rank]=?`
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &temp, sql, data.ActivityIV, data.Rank)
 	if err != nil {
-		return
+		return "", entity.PlayerWallet{}, err
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("GetDistributionWallet rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "ActivityIV", data.ActivityIV, "Rank", data.Rank, "rowCount", rowCount)
-		return
+		return "", entity.PlayerWallet{}, err
 	}
 	wallet, err = GetPlayerWallet(es.AddTraceMap(traceMap, sqlid.GetPlayerWallet.String()), temp.Account, temp.Currency)
 	if err != nil {
-		return
+		return temp.Account, wallet, err
 	}
-	return temp.Account, wallet, err
+	return temp.Account, wallet, nil
 }
 
 // 取支援的Currency清單
@@ -643,25 +634,25 @@ func GetCurrencyList(traceMap string) (list []entity.CurrencyListResponse, err e
 			FROM [Currency]`
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if rowCount == 0 {
 		err = fmt.Errorf("GetCurrencyList rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "rowCount", rowCount)
-		return
+		return nil, err
 	}
-	return
+	return list, nil
 }
 
 // 查RollOut對應GameResult/RollIn
 func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.RoundCheckToken, err error) {
 	rollTimeStart, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, fromDate)
 	if err != nil {
-		return
+		return nil, err
 	}
 	rollTimeEnd, err := es.ParseTime(es.AddTraceMap(traceMap, string(esid.ParseTime)), es.ApiTimeFormat, toDate)
 	if err != nil {
-		return
+		return nil, err
 	}
 	sql := `SELECT RO.connectToken,RO.gameSequenceNumber
 			FROM RollHistory(nolock) as RO
@@ -676,7 +667,7 @@ func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.
 	params = append(params, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
 	_, err = sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &list, sql, params...)
 	if err != nil {
-		return
+		return nil, err
 	}
 	/* *TODO 如果之後有限制回傳筆數
 	if rowCount != 1 {
@@ -685,7 +676,7 @@ func GetRoundCheckList(traceMap string, fromDate, toDate string) (list []entity.
 		return
 	}
 	*/
-	return
+	return list, nil
 }
 
 // 是否存在rollOut
@@ -711,8 +702,7 @@ func IsExistsRolloutHistory(traceMap string, gameSequenceNumber string) (hasData
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "params", params, "rollOutAmount", rollOutAmount.String())
 		return false, decimal.Zero
 	}
-	hasData = true
-	return
+	return true, rollOutAmount
 }
 
 // 計算連線BetCount
@@ -726,14 +716,14 @@ func GetAccountBetCount(traceMap string, account string) (count int, err error) 
 			WHERE acct.account=?`
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &count, sql, account)
 	if err != nil {
-		return
+		return 0, err
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("GetAccountBetCount rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountBetCount, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "account", account, "rowCount", rowCount)
-		return
+		return 0, err
 	}
-	return
+	return count, nil
 }
 
 // 計算連線RTP
@@ -750,12 +740,12 @@ func GetAccountRtp(traceMap string, account string) (rtp int, err error) {
 			WHERE acct.account=?`
 	rowCount, err := sqlDb.Select(es.AddTraceMap(traceMap, string(esid.SqlSelect)), &rtp, sql, account)
 	if err != nil {
-		return
+		return 0, err
 	}
 	if rowCount != 1 {
 		err = fmt.Errorf("GetAccountRtp rowCount error")
 		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountRtp, innererror.ErrorTypeNode, innererror.SelectError, innererror.ErrorInfoNode, err, "sql", sql, "account", account, "rowCount", rowCount)
-		return
+		return 0, err
 	}
-	return
+	return rtp, nil
 }

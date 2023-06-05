@@ -1,9 +1,9 @@
 package es
 
 import (
+	"TestAPI/external/service/zaplog"
 	"context"
 	"fmt"
-	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -36,12 +36,12 @@ func init() {
 	// 連接MongoDB
 	mgoCli, err = mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		zaplog.Error(err)
 	}
 	// 確認連接狀態
 	err = mgoCli.Ping(context.TODO(), nil)
 	if err != nil {
-		log.Fatal(err)
+		zaplog.Error(err)
 	}
 }
 
@@ -106,14 +106,14 @@ func TestAddMongo() {
 			},
 		})
 		if err != nil {
-			log.Fatal(err)
+			zaplog.Error(err)
 		}
 		if result == nil {
-			log.Fatal("result nil")
+			zaplog.Error("result nil")
 		}
 		for _, v := range result.InsertedIDs {
 			id = v.(primitive.ObjectID)
-			fmt.Println("自增ID", id.Hex())
+			zaplog.Infof("自增ID:%s", id.Hex())
 		}
 	}
 }
@@ -130,13 +130,13 @@ func TestGetMongo() {
 
 	//不跳過抓10000筆,無條件
 	if cursor, err = collection.Find(context.TODO(), bson.D{}, options.Find().SetSkip(0), options.Find().SetLimit(10000)); err != nil {
-		fmt.Println(err)
+		zaplog.Error(err)
 		return
 	}
 	//最後要關閉cursor
 	defer func() {
 		if err = cursor.Close(context.TODO()); err != nil {
-			log.Fatal(err)
+			zaplog.Error(err)
 		}
 	}()
 	/*
@@ -154,14 +154,8 @@ func TestGetMongo() {
 	//內建遍歷：
 	var results []LogRecord
 	if err = cursor.All(context.TODO(), &results); err != nil {
-		log.Fatal(err)
+		zaplog.Error(err)
 	}
 	etime := UtcNow().Format(ApiTimeFormat)
-	fmt.Println(fmt.Sprintf("start:%s ,end:%s, len:%d", stime, etime, len(results)))
-	/*
-		for _, result := range results {
-			fmt.Println(result)
-		}
-		fmt.Println(UtcNow().Format(ApiTimeFormat))
-	*/
+	zaplog.Info(fmt.Sprintf("start:%s ,end:%s, len:%d", stime, etime, len(results)))
 }

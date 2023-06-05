@@ -20,12 +20,12 @@ type GameResultService struct {
 func ParseGameResultRequest(traceMap string, r *http.Request) (request entity.GameResultRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -36,33 +36,37 @@ func ParseGameResultRequest(traceMap string, r *http.Request) (request entity.Ga
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *GameResultService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
-		return
+		return nil
 	}
+
 	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
-		return
+		return nil
 	}
+
 	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
-		return
+		return nil
 	}
+
 	isAddGameResultOK := addGameResultAndRollHistory(es.AddTraceMap(service.TraceMap, string(functionid.AddGameResultAndRollHistory)), &service.Request.BaseSelfDefine, service.Request.GameResult, wallet)
 	if !isAddGameResultOK {
-		return
+		return nil
 	}
-	data = refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
-	return
+	return refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
 }
 
 // 寫入RollOut|RollIn|GameResult,更新錢包(transaction)
@@ -70,9 +74,8 @@ func addGameResultAndRollHistory(traceMap string, selfDefine *entity.BaseSelfDef
 	isOK = database.AddGameResultReCountWallet(es.AddTraceMap(traceMap, sqlid.AddGameResultReCountWallet.String()), data, wallet, es.LocalNow(8))
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
-		return
 	}
-	return
+	return isOK
 }
 
 // 更新錢包|betCount緩存

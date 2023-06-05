@@ -11,6 +11,8 @@ import (
 	esid "TestAPI/enum/externalserviceid"
 	es "TestAPI/external/service"
 
+	"net/http/pprof"
+
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -37,6 +39,7 @@ const (
 	errorCodeHeader     = "errorcode"
 	swaggerPath         = "/swagger"
 	apiPath             = "/api"
+	pprofPath           = "/debug"
 )
 
 // 初始化,註冊所有api controller/middleware跟api path對應
@@ -61,10 +64,29 @@ func init() {
 	register("GET", "/currency/currencyList", controller.CurrencyList, TraceIDMiddleware, AuthMiddleware)
 }
 
+func initPprofRouter(router *mux.Router) {
+	router.Methods("GET").Path("/pprof").HandlerFunc(pprof.Index)
+	router.Methods("GET").Path("/allocs").Handler(pprof.Handler("allocs"))
+	router.Methods("GET").Path("/block").Handler(pprof.Handler("block"))
+	router.Methods("GET").Path("/cmdline").HandlerFunc(pprof.Cmdline)
+	router.Methods("GET").Path("/goroutine").Handler(pprof.Handler("goroutine"))
+	router.Methods("GET").Path("/heap").Handler(pprof.Handler("heap"))
+	router.Methods("GET").Path("/mutex").Handler(pprof.Handler("mutex"))
+	router.Methods("GET").Path("/profile").HandlerFunc(pprof.Profile)
+	router.Methods("GET").Path("/threadcreate").Handler(pprof.Handler("threadcreate"))
+	router.Methods("GET").Path("/trace").HandlerFunc(pprof.Trace)
+}
+
 // 使用mux Router,分不同前路徑規則劃分為swagger|api,使用不同middleware
 func NewRouter() http.Handler {
 	r := mux.NewRouter()
+	//swagger走自己的路徑不用經過middleware,/swagger
 	r.PathPrefix(swaggerPath).Handler(httpSwagger.WrapHandler)
+	//r.PathPrefix(pprofPath).HandlerFunc(pprof.Index)
+	//pprof走自己的路徑不用經過middleware,/debug
+	pprofRouter := r.PathPrefix(pprofPath).Subrouter()
+	initPprofRouter(pprofRouter)
+	//api走subrouter加上middleware
 	apiRouter := r.PathPrefix(apiPath).Subrouter()
 	for _, route := range routes {
 		apiRouter.Methods(route.Method).

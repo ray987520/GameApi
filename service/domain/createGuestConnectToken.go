@@ -32,14 +32,14 @@ func ParseCreateGuestConnectTokenRequest(traceMap string, r *http.Request) (requ
 	gameId, err := strconv.Atoi(query.Get("gameID"))
 	if err != nil {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return entity.CreateGuestConnectTokenRequest{}, err
+		return request, err
 	}
 	request.GameId = gameId
 
 	//validate request
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return entity.CreateGuestConnectTokenRequest{}, err
+		return request, err
 	}
 	return request, nil
 }
@@ -48,18 +48,15 @@ func (service *CreateGuestConnectTokenService) Exec() interface{} {
 	//catch panic
 	defer es.PanicTrace(service.TraceMap)
 
-	data := entity.CreateGuestConnectTokenResponse{}
-
 	if service.Request.HasError() {
-		return data
+		return nil
 	}
 
 	//gen a token
 	token := genConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.GenConnectToken)), &service.Request.BaseSelfDefine, service.Request.Account, service.Request.Currency, service.Request.GameId)
-	data = entity.CreateGuestConnectTokenResponse{
+	return entity.CreateGuestConnectTokenResponse{
 		Token: token,
 	}
-	return data
 }
 
 // 創建token,aes128加密,包含gameId,currency,account跟過期時間600秒(timestamp)

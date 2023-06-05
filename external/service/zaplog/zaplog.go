@@ -1,13 +1,13 @@
 package zaplog
 
 import (
-	"TestAPI/external/service/mconfig"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/natefinch/lumberjack"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -22,12 +22,12 @@ const (
 )
 
 var (
-	maxlogsize      = mconfig.GetInt("log.maxlogsize")         //每50MB切割log檔
-	maxbackup       = mconfig.GetInt("log.maxbackup")          //達300個切割開始取代舊檔
-	maxage          = mconfig.GetInt("log.maxage")             //log保存最大時間(days)
-	svcname         = mconfig.GetString("log.svcname")         //log檔名
-	logFilePath     = mconfig.GetString("log.logFilePath")     //log檔案路徑
-	defaultLogLevel = mconfig.GetString("log.defaultLogLevel") //預設log level
+	maxlogsize      = viper.GetInt("log.maxlogsize")         //每50MB切割log檔
+	maxbackup       = viper.GetInt("log.maxbackup")          //達300個切割開始取代舊檔
+	maxage          = viper.GetInt("log.maxage")             //log保存最大時間(days)
+	svcname         = viper.GetString("log.svcname")         //log檔名
+	logFilePath     = viper.GetString("log.logFilePath")     //log檔案路徑
+	defaultLogLevel = viper.GetString("log.defaultLogLevel") //預設log level
 )
 
 var (
@@ -40,6 +40,23 @@ var (
 		"error": zapcore.ErrorLevel,
 	}
 )
+
+const (
+	configFileName       = "config"
+	viperReadFileError   = "Viper Read Config File Error:%v"
+	viperReadConfigError = "Viper Read Config Error ,configPath:%s ,data:%v"
+	configChangeMessage  = "Config File Changed ,data:%s"
+)
+
+// 初始化viper,因為zaplog為最底層,跟mconfig又不同包,避免循環參照只能拉到同一層或是獨立viper
+func init() {
+	viper.AddConfigPath("./")
+	viper.SetConfigName(configFileName)
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Sprintf(viperReadFileError, err))
+	}
+}
 
 // 取logger層級,預設info
 func getLoggerLevel(lvl string) zapcore.Level {

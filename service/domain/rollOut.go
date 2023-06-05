@@ -21,12 +21,12 @@ type RollOutService struct {
 func ParseRollOutRequest(traceMap string, r *http.Request) (request entity.RollOutRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -37,44 +37,53 @@ func ParseRollOutRequest(traceMap string, r *http.Request) (request entity.RollO
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) || !strings.HasPrefix(request.TransID, "rollOut-") {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *RollOutService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
-		return
+		return nil
 	}
+
 	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
-		return
+		return nil
 	}
+
 	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
-		return
+		return nil
 	}
+
 	isAddRollHistoryOK := addRollOutHistory(es.AddTraceMap(service.TraceMap, string(functionid.AddRollOutHistory)), &service.Request.BaseSelfDefine, service.Request.RollHistory, wallet)
 	if !isAddRollHistoryOK {
-		return
+		return nil
 	}
+
 	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
+
 	if service.Request.TakeAll == 0 {
 		wallet, isOK = getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
 		if !isOK {
-			return
+			return nil
 		}
-		data = entity.RollOutResponse{
+
+		return entity.RollOutResponse{
 			Currency: wallet.Currency,
 			Amount:   service.Request.Amount,
 			Balance:  wallet.Amount,
 		}
 	}
-	return
+
+	return nil
 }
 
 // 添加rollOut並更新錢包
@@ -83,7 +92,7 @@ func addRollOutHistory(traceMap string, selfDefine *entity.BaseSelfDefine, data 
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
-	return
+	return isOK
 }
 
 func (service *RollOutService) GetBaseSelfDefine() (selfDefine entity.BaseSelfDefine) {

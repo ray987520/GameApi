@@ -29,12 +29,12 @@ type AddGameLogService struct {
 func ParseAddGameLogRequest(traceMap string, r *http.Request) (request entity.AddGameLogRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)

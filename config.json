@@ -27,7 +27,6 @@
         "maxIdleSecond": 5
     },
     "redis": {
-        "connProtocol": "tcp",
         "connServer": "127.0.0.1:6379",
         "maxOpenConns": 10,
         "maxIdleConns": 1,
@@ -36,5 +35,10 @@
     "core": {
         "maxWorker": 10,
         "maxJobQueue": 512
+    },
+    "api": {
+        "report": {
+            "historyReportUrl": "https://www.gameReport.com"
+        }
     }
 }

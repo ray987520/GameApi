@@ -26,31 +26,35 @@ func ParseGetConnectTokenAmountRequest(traceMap string, r *http.Request) (reques
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, err
 }
 
 func (service *GetConnectTokenAmountService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
-		return
+		return nil
 	}
+
 	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
-		return
+		return nil
 	}
+
 	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
-		return
+		return nil
 	}
+
 	//don't show WalletID
 	wallet.WalletID = ""
-	data = wallet
-	return
+	return wallet
 }
 
 func (service *GetConnectTokenAmountService) GetBaseSelfDefine() (selfDefine entity.BaseSelfDefine) {

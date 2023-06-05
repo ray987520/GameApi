@@ -37,7 +37,10 @@ func CreateConnectToken(traceMap string, account, currency string, gameId int) (
 	claims.ExpiresAt = now.Add(10 * time.Minute).Unix()
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err = jwtToken.SignedString(jwtSecret)
-	return
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
 }
 
 // 驗證JWT TOKEN

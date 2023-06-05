@@ -38,27 +38,29 @@ func CreateGuestConnectToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTraceIdFromRequest(r *http.Request) (traceID string) {
-	traceID = r.Header.Get(traceIdFieldName)
-	return
+	return r.Header.Get(traceIdFieldName)
 }
 
 // 在公用MAP註冊一個traceid(uuid)的唯一response channel
 func initResponseChannel(traceID string) {
 	service.ResponseMap.Store(traceID, make(chan entity.BaseHttpResponse))
 	//service.ResponseMap[traceID] = make(chan entity.BaseHttpResponse)
-	return
 }
 
 // response回寫到channel公用map
 func writeHttpResponse(w http.ResponseWriter, traceID string) {
+	//設定decimal序列化處理時不要雙引號
 	decimal.MarshalJSONWithoutQuotes = true
+
 	var (
 		data []byte
 		err  error
 	)
+
 	//sync.Map不能用舊的map[key]方式取值賦值,改用sync.Map.Load取值
 	value, isOK := service.ResponseMap.Load(traceID)
 	if !isOK {
+		//map找不到traceID的情況報錯
 		data = []byte(loadResponseChannelError)
 	} else {
 		//先型別斷言responseChannel再取出response=>關閉responseChannel=>刪除map key
@@ -69,6 +71,7 @@ func writeHttpResponse(w http.ResponseWriter, traceID string) {
 		//response := <-service.ResponseMap[traceID]
 		//close(service.ResponseMap[traceID])
 		//delete(service.ResponseMap, traceID)
+		//序列化response
 		data, err = es.JsonMarshal(traceID, response)
 		if err != nil {
 			data = []byte(responseFormatError)

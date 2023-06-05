@@ -20,12 +20,12 @@ type DistributionService struct {
 func ParseDistributionRequest(traceMap string, r *http.Request) (request entity.DistributionRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -36,32 +36,36 @@ func ParseDistributionRequest(traceMap string, r *http.Request) (request entity.
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *DistributionService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
 
 	account, wallet, isOK := getDistributionWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetDistributionWallet)), &service.Request.BaseSelfDefine, service.Request.Distribution)
 	if !isOK {
-		return
+		return nil
 	}
+
 	//資料沒派彩過才派彩
 	hasRecord := hasUnpayActivityDistribution(es.AddTraceMap(service.TraceMap, string(functionid.HasUnpayActivityDistribution)), &service.Request.BaseSelfDefine, service.Request.ActivityIV, service.Request.Rank)
 	if !hasRecord {
-		return
+		return nil
 	}
+
 	isOK = activityDistribution(es.AddTraceMap(service.TraceMap, string(functionid.ActivityDistribution)), &service.Request.BaseSelfDefine, service.Request.Distribution, wallet.WalletID)
 	if !isOK {
-		return
+		return nil
 	}
+
 	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), wallet.Currency, account)
-	return
+	return nil
 }
 
 // 取派彩的用戶錢包
@@ -69,10 +73,9 @@ func getDistributionWallet(traceMap string, selfDefine *entity.BaseSelfDefine, d
 	account, wallet, err := database.GetDistributionWallet(es.AddTraceMap(traceMap, sqlid.GetDistributionWallet.String()), data)
 	if err != nil {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
-		return
+		return "", entity.PlayerWallet{}, false
 	}
-	isOK = true
-	return
+	return account, wallet, true
 }
 
 // 是否有未派彩紀錄
@@ -80,9 +83,8 @@ func hasUnpayActivityDistribution(traceMap string, selfDefine *entity.BaseSelfDe
 	hasRecord = database.IsExistsUnpayActivityDistribution(es.AddTraceMap(traceMap, sqlid.IsExistsUnpayActivityDistribution.String()), activityIV, rank)
 	if !hasRecord {
 		selfDefine.ErrorCode = string(errorcode.ActivityPayoutDone)
-		return
 	}
-	return
+	return hasRecord
 }
 
 // 活動派彩
@@ -90,9 +92,8 @@ func activityDistribution(traceMap string, selfDefine *entity.BaseSelfDefine, da
 	isOK = database.ActivityDistribution(es.AddTraceMap(traceMap, sqlid.ActivityDistribution.String()), data, walletID, es.LocalNow(8))
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
-		return
 	}
-	return
+	return isOK
 }
 
 func (service *DistributionService) GetBaseSelfDefine() (selfDefine entity.BaseSelfDefine) {

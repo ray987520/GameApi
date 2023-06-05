@@ -28,22 +28,25 @@ func ParseGetConnectTokenInfoRequest(traceMap string, r *http.Request) (request 
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *GetConnectTokenInfoService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
-		return
+		return nil
 	}
+
 	account, currency, gameId := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
-	data = getPlayerInfoCache(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerInfoCache)), &service.Request.BaseSelfDefine, account, currency, gameId)
-	return
+
+	return getPlayerInfoCache(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerInfoCache)), &service.Request.BaseSelfDefine, account, currency, gameId)
 }
 
 // 取出緩存PlayerInfo
@@ -53,6 +56,7 @@ func getPlayerInfoCache(traceMap string, selfDefine *entity.BaseSelfDefine, acco
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return nil
 	}
+
 	base := playerInfo.PlayerBase
 	wallet := playerInfo.PlayerWallet
 	//不輸出walletId跟重複的Currency欄位

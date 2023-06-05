@@ -19,12 +19,12 @@ type SettlementService struct {
 func ParseSettlementRequest(traceMap string, r *http.Request) (request entity.SettlementRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -35,21 +35,24 @@ func ParseSettlementRequest(traceMap string, r *http.Request) (request entity.Se
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *SettlementService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	isOK := addUnpayActivityRank(es.AddTraceMap(service.TraceMap, string(functionid.AddUnpayActivityRank)), &service.Request.BaseSelfDefine, service.Request.Settlement)
 	if !isOK {
-		return
+		return nil
 	}
-	return
+
+	return nil
 }
 
 // add未派彩紀錄
@@ -57,9 +60,8 @@ func addUnpayActivityRank(traceMap string, selfDefine *entity.BaseSelfDefine, da
 	isOK = database.AddActivityRank(es.AddTraceMap(traceMap, sqlid.AddActivityRank.String()), data)
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
-		return
 	}
-	return
+	return isOK
 }
 
 func (service *SettlementService) GetBaseSelfDefine() (selfDefine entity.BaseSelfDefine) {

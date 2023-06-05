@@ -28,30 +28,32 @@ func ParseGetSequenceNumbersRequest(traceMap string, r *http.Request) (request e
 	qty, err := strconv.Atoi(query.Get("quantity"))
 	if err != nil {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
 	request.Quantity = qty
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *GetSequenceNumbersService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	seqNos := getGameSequenceNumbers(es.AddTraceMap(service.TraceMap, string(functionid.GetGameSequenceNumbers)), &service.Request.BaseSelfDefine, service.Request.Quantity)
 	if seqNos == nil {
-		return
+		return nil
 	}
-	data = entity.GetSequenceNumbersResponse{
+
+	return entity.GetSequenceNumbersResponse{
 		SequenceNumber: seqNos,
 	}
-	return
 }
 
 // 取多個將號,暫時prefix給空字串,如果redis數字爆掉可以加上新prefix避免重覆

@@ -19,12 +19,12 @@ type DelConnectTokenService struct {
 func ParseDelConnectTokenRequest(traceMap string, r *http.Request) (request entity.DelConnectTokenRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -35,9 +35,9 @@ func ParseDelConnectTokenRequest(traceMap string, r *http.Request) (request enti
 
 	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return
+		return request, err
 	}
-	return
+	return request, nil
 }
 
 func (service *DelConnectTokenService) Exec() interface{} {
@@ -62,7 +62,6 @@ func logOutToken(traceMap string, selfDefine *entity.BaseSelfDefine, token strin
 	isOK := database.DeleteToken(es.AddTraceMap(traceMap, sqlid.DeleteToken.String()), token, now)
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
-		return isOK
 	}
 	return isOK
 }

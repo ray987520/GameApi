@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	redisConnectProtocol = mconfig.GetString("redis.connProtocol")
+	redisConnectProtocol = "tcp"
 	redisConnectServer   = mconfig.GetString("redis.connServer")
 	maxRedisOpenConns    = mconfig.GetInt("redis.maxOpenConns")
 	maxRedisIdleConns    = mconfig.GetInt("redis.maxIdleConns")
@@ -67,9 +67,9 @@ func (pool *RedisPool) GetKey(traceMap string, key string) (value []byte, err er
 	value, err = redis.Bytes(conn.Do("GET", key))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKey, innererror.ErrorTypeNode, innererror.GetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
-		return
+		return nil, err
 	}
-	return
+	return value, nil
 }
 
 // 設置redis string
@@ -79,16 +79,16 @@ func (pool *RedisPool) SetKey(traceMap string, key string, value []byte, ttlSeco
 	_, err = conn.Do("SET", key, value)
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.ErrorTypeNode, innererror.SetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key, "value", string(value))
-		return
+		return err
 	}
 	if ttlSecond > 0 {
 		_, err = conn.Do("EXPIRE", key, ttlSecond)
 		if err != nil {
 			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.ErrorTypeNode, innererror.SetKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key, "ttlSecond", ttlSecond)
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 // 刪除redis keys
@@ -98,9 +98,9 @@ func (pool *RedisPool) DeleteKey(traceMap string, keys ...interface{}) (err erro
 	_, err = redis.Int(conn.Do("DEL", keys...))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisDeleteKey, innererror.ErrorTypeNode, innererror.DeleteKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "keys", keys)
-		return
+		return err
 	}
-	return
+	return nil
 }
 
 // redis queue LPUSH
@@ -110,9 +110,9 @@ func (pool *RedisPool) LPushList(traceMap string, key string, value []byte) (err
 	_, err = redis.Int(conn.Do("LPUSH", key, value))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisLPushList, innererror.ErrorTypeNode, innererror.LPushListError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key, "value", string(value))
-		return
+		return err
 	}
-	return
+	return nil
 }
 
 // 取redis client,需要使用MULTI之類時使用
@@ -127,7 +127,7 @@ func (pool *RedisPool) GetKeys(traceMap string, keys ...interface{}) (values [][
 	datas, err := redis.Values(conn.Do("MGET", keys...))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKeys, innererror.ErrorTypeNode, innererror.GetKeysError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "keys", keys)
-		return
+		return nil, err
 	}
 	for _, d := range datas {
 		if d != nil {
@@ -136,7 +136,7 @@ func (pool *RedisPool) GetKeys(traceMap string, keys ...interface{}) (values [][
 		}
 	}
 
-	return
+	return values, nil
 }
 
 // redis INCR
@@ -146,9 +146,9 @@ func (pool *RedisPool) IncrKey(traceMap string, key string) (data int64, err err
 	data, err = redis.Int64(conn.Do("INCR", key))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKey, innererror.ErrorTypeNode, innererror.IncrKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
-		return
+		return 0, err
 	}
-	return
+	return data, nil
 }
 
 // redis INCRBY
@@ -158,7 +158,7 @@ func (pool *RedisPool) IncrKeyBy(traceMap string, key string, count int) (data i
 	data, err = redis.Int64(conn.Do("INCRBY", key, count))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKeyBy, innererror.ErrorTypeNode, innererror.IncrKeyError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
-		return
+		return 0, err
 	}
-	return
+	return data, nil
 }

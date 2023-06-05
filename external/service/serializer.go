@@ -23,5 +23,5 @@ func JsonUnMarshal(traceMap string, data []byte, v any) (err error) {
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JsonUnMarshal, innererror.ErrorInfoNode, innererror.JsonUnMarshalError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "data", data)
 	}
-	return
+	return err
 }

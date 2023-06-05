@@ -38,7 +38,7 @@ func ParseTime(traceMap, format, timeString string) (t time.Time, err error) {
 	t, err = time.Parse(format, timeString)
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.ParseTime, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", format, "timeString", timeString)
-		return
+		return t, err
 	}
-	return
+	return t, nil
 }

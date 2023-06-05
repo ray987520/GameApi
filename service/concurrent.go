@@ -150,7 +150,7 @@ func fetchJob(traceMap string, domainNo controllerid.ControllerId, r *http.Reque
 			TraceMap: es.AddTraceMap(traceMap, string(serviceid.DefaultError)),
 		}
 	}
-	return
+	return job
 }
 
 // enqueue job

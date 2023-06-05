@@ -23,12 +23,12 @@ type AuthConnectTokenService struct {
 func ParseAuthConnectTokenRequest(traceMap string, r *http.Request) (request entity.AuthConnectTokenRequest, err error) {
 	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
 	if err != nil {
-		return
+		return request, err
 	}
 
 	//read request header
@@ -123,9 +123,8 @@ func addConnectToken2Db(traceMap string, selfDefine *entity.BaseSelfDefine, toke
 	isOK := database.AddConnectToken(es.AddTraceMap(traceMap, sqlid.AddConnectToken.String()), token, account, currency, ip, gameId, es.LocalNow(8))
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
-		return false
 	}
-	return true
+	return isOK
 }
 
 // 取PlayerInfo(Base|BetCount|Wallet)

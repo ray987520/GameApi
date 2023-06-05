@@ -27,17 +27,19 @@ func ParseGetSequenceNumberRequest(traceMap string, r *http.Request) (request en
 
 func (service *GetSequenceNumberService) Exec() (data interface{}) {
 	defer es.PanicTrace(service.TraceMap)
+
 	if service.Request.HasError() {
-		return
+		return nil
 	}
+
 	seqNo := getGameSequenceNumber(es.AddTraceMap(service.TraceMap, string(functionid.GetGameSequenceNumber)), &service.Request.BaseSelfDefine)
 	if seqNo == "" {
-		return
+		return nil
 	}
-	data = entity.GetSequenceNumberResponse{
+
+	return entity.GetSequenceNumberResponse{
 		SequenceNumber: seqNo,
 	}
-	return
 }
 
 // 取單一將號,暫時prefix給空字串,如果redis數字爆掉可以加上新prefix避免重覆
@@ -45,6 +47,7 @@ func getGameSequenceNumber(traceMap string, selfDefine *entity.BaseSelfDefine) s
 	seqNo := database.GetGameSequenceNumber(es.AddTraceMap(traceMap, redisid.GetGameSequenceNumber.String()), "")
 	if seqNo == "" {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
+		return ""
 	}
 	return seqNo
 }

@@ -163,5 +163,5 @@ func (gormDB *GormDB) Transaction(traceMap string, sqlStrings []string, params .
 
 		return nil
 	})
-	return
+	return rowsAffect, err
 }
