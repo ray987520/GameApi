@@ -51,6 +51,7 @@ func (service *GetSequenceNumbersService) Exec() (data interface{}) {
 		return nil
 	}
 
+	service.Request.ErrorCode = string(errorcode.Success)
 	return entity.GetSequenceNumbersResponse{
 		SequenceNumber: seqNos,
 	}

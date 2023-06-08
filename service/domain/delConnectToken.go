@@ -52,7 +52,12 @@ func (service *DelConnectTokenService) Exec() interface{} {
 		return nil
 	}
 
-	logOutToken(es.AddTraceMap(service.TraceMap, string(functionid.LogOutToken)), &service.Request.BaseSelfDefine, service.Request.Token)
+	isOK := logOutToken(es.AddTraceMap(service.TraceMap, string(functionid.LogOutToken)), &service.Request.BaseSelfDefine, service.Request.Token)
+	if !isOK {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
 	return nil
 }
 

@@ -76,6 +76,7 @@ func (service *AuthConnectTokenService) Exec() interface{} {
 	//PlayerWallet的WalletID/Currency後續有使用但不輸出於此response
 	playerInfo.WalletID = ""
 	playerInfo.PlayerWallet.Currency = ""
+	service.Request.ErrorCode = string(errorcode.Success)
 	return playerInfo
 }
 

@@ -75,6 +75,7 @@ func (service *FinishGameResultService) Exec() (data interface{}) {
 	}
 
 	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
+	service.Request.ErrorCode = string(errorcode.Success)
 	return
 }
 

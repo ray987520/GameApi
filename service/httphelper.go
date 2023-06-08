@@ -11,6 +11,10 @@ import (
 
 // 封裝Http Repsonse
 func GetHttpResponse(code string, requestTime, traceCode string, data interface{}) entity.BaseHttpResponse {
+	//在不正常response code完全沒賦值時,預設為UnknowError
+	if code == string(errorcode.Default) {
+		code = string(errorcode.UnknowError)
+	}
 	errorMessage := database.GetExternalErrorMessage(es.AddTraceMap("", sqlid.GetExternalErrorMessage.String()), code)
 	if errorMessage == "" {
 		errorMessage = database.GetExternalErrorMessage(es.AddTraceMap("", sqlid.GetExternalErrorMessage.String()), string(errorcode.UnknowError))

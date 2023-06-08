@@ -55,6 +55,8 @@ func (service *UpdateTokenLocationService) Exec() (data interface{}) {
 	if !isUpdateOK {
 		return nil
 	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
 	return nil
 }
 

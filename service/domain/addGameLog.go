@@ -75,7 +75,12 @@ func (service *AddGameLogService) Exec() (data interface{}) {
 	}
 
 	//insert gamelog
-	addGameLog2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddGameLog2Db)), &service.Request, exchangeRate)
+	isOK := addGameLog2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddGameLog2Db)), &service.Request, exchangeRate)
+	if !isOK {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
 	return nil
 }
 
@@ -99,11 +104,12 @@ func currency2ExchangeRate(traceMap string, selfDefine *entity.BaseSelfDefine, c
 }
 
 // 添加gamelog到Db“
-func addGameLog2Db(traceMap string, data *entity.AddGameLogRequest, exchangeRate decimal.Decimal) {
+func addGameLog2Db(traceMap string, data *entity.AddGameLogRequest, exchangeRate decimal.Decimal) bool {
 	isOK := database.AddGameLog(es.AddTraceMap(traceMap, sqlid.AddGameLog.String()), data.GameLog, exchangeRate)
 	if !isOK {
 		data.ErrorCode = string(errorcode.UnknowError)
 	}
+	return isOK
 }
 
 func (service *AddGameLogService) GetBaseSelfDefine() entity.BaseSelfDefine {

@@ -54,6 +54,11 @@ func (service *CreateGuestConnectTokenService) Exec() interface{} {
 
 	//gen a token
 	token := genConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.GenConnectToken)), &service.Request.BaseSelfDefine, service.Request.Account, service.Request.Currency, service.Request.GameId)
+	if token == "" {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
 	return entity.CreateGuestConnectTokenResponse{
 		Token: token,
 	}

@@ -67,6 +67,7 @@ func (service *RoundCheckService) Exec() (data interface{}) {
 		return nil
 	}
 
+	service.Request.ErrorCode = string(errorcode.Success)
 	return entity.RoundCheckResponse{
 		RoundCheckList: roundCheckList,
 	}

@@ -21,13 +21,14 @@ const (
 	ErrorLevel Level = Level(zap.ErrorLevel)
 )
 
+// var會比init早執行,但zaplog這裡不是用mconfig,所以先給預設值
 var (
-	maxlogsize      = viper.GetInt("log.maxlogsize")         //每50MB切割log檔
-	maxbackup       = viper.GetInt("log.maxbackup")          //達300個切割開始取代舊檔
-	maxage          = viper.GetInt("log.maxage")             //log保存最大時間(days)
-	svcname         = viper.GetString("log.svcname")         //log檔名
-	logFilePath     = viper.GetString("log.logFilePath")     //log檔案路徑
-	defaultLogLevel = viper.GetString("log.defaultLogLevel") //預設log level
+	maxlogsize      int
+	maxbackup       int
+	maxage          int
+	svcname         string
+	logFilePath     string
+	defaultLogLevel string
 )
 
 var (
@@ -50,12 +51,19 @@ const (
 
 // 初始化viper,因為zaplog為最底層,跟mconfig又不同包,避免循環參照只能拉到同一層或是獨立viper
 func init() {
-	viper.AddConfigPath("./")
-	viper.SetConfigName(configFileName)
-	err := viper.ReadInConfig()
+	zviper := viper.New()
+	zviper.AddConfigPath("./")
+	zviper.SetConfigName(configFileName)
+	err := zviper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Sprintf(viperReadFileError, err))
 	}
+	maxlogsize = zviper.GetInt("log.maxlogsize")              //每50MB切割log檔
+	maxbackup = zviper.GetInt("log.maxbackup")                //達300個切割開始取代舊檔
+	maxage = zviper.GetInt("log.maxage")                      //log保存最大時間(days)
+	svcname = zviper.GetString("log.svcname")                 //log檔名
+	logFilePath = zviper.GetString("log.logFilePath")         //log檔案路徑
+	defaultLogLevel = zviper.GetString("log.defaultLogLevel") //預設log level
 }
 
 // 取logger層級,預設info

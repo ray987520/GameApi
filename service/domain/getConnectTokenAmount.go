@@ -54,6 +54,7 @@ func (service *GetConnectTokenAmountService) Exec() (data interface{}) {
 
 	//don't show WalletID
 	wallet.WalletID = ""
+	service.Request.ErrorCode = string(errorcode.Success)
 	return wallet
 }
 

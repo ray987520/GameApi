@@ -66,7 +66,14 @@ func (service *GameResultService) Exec() (data interface{}) {
 	if !isAddGameResultOK {
 		return nil
 	}
-	return refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
+
+	refeshData := refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
+	if refeshData == nil {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
+	return refeshData
 }
 
 // 寫入RollOut|RollIn|GameResult,更新錢包(transaction)

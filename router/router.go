@@ -44,26 +44,27 @@ const (
 
 // 初始化,註冊所有api controller/middleware跟api path對應
 func init() {
-	register("GET", "/token/createGuestConnectToken", controller.CreateGuestConnectToken, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/v1.0/connectToken/authorization", controller.AuthConnectToken, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/token/updateConnectTokenLocation", controller.UpdateTokenLocation, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/token/getConnectTokenInfo", controller.GetConnectTokenInfo, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/token/getConnectTokenAmount", controller.GetConnectTokenAmount, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/token/delConnectToken", controller.DelConnectToken, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/betSlip/getSequenceNumber", controller.GetSequenceNumber, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/betSlip/getSequenceNumbers", controller.GetSequenceNumbers, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/betSlip/roundCheck", controller.RoundCheck, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/v1.0/betSlipPersonal/gameResult", controller.GameResult, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/v1.0/betSlipPersonal/supplement/result", controller.FinishGameResult, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/betSlipPersonal/addUniversalGameLog", controller.AddGameLog, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/gameReport/orderList", controller.OrderList, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/transaction/rollOut", controller.RollOut, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/transaction/rollIn", controller.RollIn, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/v1.0/activity/ranking/settlement", controller.Settlement, TraceIDMiddleware, AuthMiddleware)
-	register("POST", "/v1.0/activity/ranking/distribution", controller.Distribution, TraceIDMiddleware, AuthMiddleware)
-	register("GET", "/currency/currencyList", controller.CurrencyList, TraceIDMiddleware, AuthMiddleware)
+	register("GET", "/token/createGuestConnectToken", controller.CreateGuestConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/connectToken/authorization", controller.AuthConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/token/updateConnectTokenLocation", controller.UpdateTokenLocation, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/token/getConnectTokenInfo", controller.GetConnectTokenInfo, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/token/getConnectTokenAmount", controller.GetConnectTokenAmount, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/token/delConnectToken", controller.DelConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/betSlip/getSequenceNumber", controller.GetSequenceNumber, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/betSlip/getSequenceNumbers", controller.GetSequenceNumbers, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/betSlip/roundCheck", controller.RoundCheck, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/betSlipPersonal/gameResult", controller.GameResult, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/betSlipPersonal/supplement/result", controller.FinishGameResult, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/betSlipPersonal/addUniversalGameLog", controller.AddGameLog, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/gameReport/orderList", controller.OrderList, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/transaction/rollOut", controller.RollOut, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/transaction/rollIn", controller.RollIn, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/activity/ranking/settlement", controller.Settlement, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/activity/ranking/distribution", controller.Distribution, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/currency/currencyList", controller.CurrencyList, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
 }
 
+// init pprof web ui
 func initPprofRouter(router *mux.Router) {
 	router.Methods("GET").Path("/pprof").HandlerFunc(pprof.Index)
 	router.Methods("GET").Path("/allocs").Handler(pprof.Handler("allocs"))
@@ -82,21 +83,15 @@ func NewRouter() http.Handler {
 	r := mux.NewRouter()
 	//swagger走自己的路徑不用經過middleware,/swagger
 	r.PathPrefix(swaggerPath).Handler(httpSwagger.WrapHandler)
-	//r.PathPrefix(pprofPath).HandlerFunc(pprof.Index)
 	//pprof走自己的路徑不用經過middleware,/debug
 	pprofRouter := r.PathPrefix(pprofPath).Subrouter()
 	initPprofRouter(pprofRouter)
 	//api走subrouter加上middleware
 	apiRouter := r.PathPrefix(apiPath).Subrouter()
 	for _, route := range routes {
-		apiRouter.Methods(route.Method).
-			Path(route.Pattern).
-			Handler(route.Handler)
-		if route.Middlewares != nil {
-			for _, middleware := range route.Middlewares {
-				apiRouter.Use(middleware)
-			}
-		}
+		apiSubRouter := apiRouter.Methods(route.Method).Path(route.Pattern).Subrouter()
+		apiSubRouter.NewRoute().Handler(route.Handler)
+		apiSubRouter.Use(route.Middlewares...)
 	}
 	handler := cors.Default().Handler(r)
 	return handler
@@ -117,9 +112,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		token := req.Header.Get(authHeader)
 		if token != apitoken {
 			reqTime := req.Header.Get(requestTimeHeader)
-			traceCode := req.Header.Get(traceHeader)
-			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceCode, "")
-			data, err := es.JsonMarshal(traceCode, response)
+			traceID := req.Header.Get(traceHeader)
+			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceID, "")
+			data, err := es.JsonMarshal(traceID, response)
 			if err != nil {
 				data = []byte(responseFormatError)
 			}
@@ -139,7 +134,28 @@ func TraceIDMiddleware(next http.Handler) http.Handler {
 		}
 		req.Header.Add(traceHeader, traceID)
 		req.Header.Add(requestTimeHeader, es.ApiTimeString(es.LocalNow(8)))
-		req.Header.Add(errorCodeHeader, string(errorcode.Success))
+		req.Header.Add(errorCodeHeader, string(errorcode.Default))
 		next.ServeHTTP(w, req)
+	})
+}
+
+// 封裝error中間件,在跳過正常的ResponseWriter時,仍封裝輸出標準錯誤
+func ErrorHandleMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(w, req)
+		//在response之後檢查
+		errorCode := req.Header.Get(errorCodeHeader)
+		if errorCode == "" {
+			reqTime := req.Header.Get(requestTimeHeader)
+			traceID := req.Header.Get(traceHeader)
+			response := service.GetHttpResponse(string(errorcode.UnknowError), reqTime, traceID, "")
+			data, err := es.JsonMarshal(traceID, response)
+			if err != nil {
+				data = []byte(responseFormatError)
+			}
+			w.Write(data)
+			return
+		}
+
 	})
 }

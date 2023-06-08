@@ -4,6 +4,7 @@ type ErrorCode string
 
 // 對應文件與ErrorMessage.Code
 const (
+	Default                 ErrorCode = "" //預設沒有errorCode,如果輸出時仍然沒值也等於有錯誤
 	Success                 ErrorCode = "0"
 	ApiConfigError          ErrorCode = "101"
 	SignInvalid             ErrorCode = "102"

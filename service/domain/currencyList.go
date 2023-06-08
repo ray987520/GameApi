@@ -40,7 +40,13 @@ func (service *CurrencyListService) Exec() interface{} {
 		return nil
 	}
 
-	return getSupportCurrency(es.AddTraceMap(service.TraceMap, string(functionid.GetSupportCurrency)), &service.Request.BaseSelfDefine)
+	currencyList := getSupportCurrency(es.AddTraceMap(service.TraceMap, string(functionid.GetSupportCurrency)), &service.Request.BaseSelfDefine)
+	if currencyList == nil {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
+	return currencyList
 }
 
 // 取支援的Currency清單

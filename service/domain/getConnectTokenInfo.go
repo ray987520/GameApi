@@ -46,7 +46,13 @@ func (service *GetConnectTokenInfoService) Exec() (data interface{}) {
 
 	account, currency, gameId := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
 
-	return getPlayerInfoCache(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerInfoCache)), &service.Request.BaseSelfDefine, account, currency, gameId)
+	data = getPlayerInfoCache(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerInfoCache)), &service.Request.BaseSelfDefine, account, currency, gameId)
+	if data == nil {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
+	return data
 }
 
 // 取出緩存PlayerInfo

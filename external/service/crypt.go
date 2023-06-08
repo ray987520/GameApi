@@ -17,8 +17,7 @@ const (
 	bloackSizeError = "invalid ciphertext block size"
 )
 
-// AES128加密金鑰,固定16Bytes
-var aes128Key = mconfig.GetString("crypt.aes128Key")
+var aes128Key = mconfig.GetString("crypt.aes128Key") // AES128加密金鑰,固定16Bytes
 
 // AES128加密,輸出加密後base64編碼字串
 func Aes128Encrypt(traceMap string, message []byte) (string, error) {

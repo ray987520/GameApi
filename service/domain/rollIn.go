@@ -88,7 +88,13 @@ func (service *RollInService) Exec() (data interface{}) {
 
 	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
 
-	return refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
+	data = refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
+	if data == nil {
+		return nil
+	}
+
+	service.Request.ErrorCode = string(errorcode.Success)
+	return data
 }
 
 // 防呆,檢查要先有rollOut

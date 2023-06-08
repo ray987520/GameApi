@@ -76,6 +76,7 @@ func (service *RollOutService) Exec() (data interface{}) {
 			return nil
 		}
 
+		service.Request.ErrorCode = string(errorcode.Success)
 		return entity.RollOutResponse{
 			Currency: wallet.Currency,
 			Amount:   service.Request.Amount,
@@ -83,6 +84,7 @@ func (service *RollOutService) Exec() (data interface{}) {
 		}
 	}
 
+	service.Request.ErrorCode = string(errorcode.Success)
 	return nil
 }
 

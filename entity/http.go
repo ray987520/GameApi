@@ -23,10 +23,10 @@ type BaseHttpRequest struct {
 type BaseSelfDefine struct {
 	TraceID     string `json:"traceid" validate:"min=1"`
 	RequestTime string `json:"requesttime" validate:"datetime=2006-01-02T15:04:05.999-07:00"`
-	ErrorCode   string `json:"errorcode" validate:"min=1"`
+	ErrorCode   string `json:"errorcode"`
 }
 
 // 判斷是否已經有錯誤
 func (selfDefine *BaseSelfDefine) HasError() bool {
-	return selfDefine.ErrorCode != "0"
+	return selfDefine.ErrorCode != ""
 }
