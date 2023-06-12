@@ -57,6 +57,11 @@ func GetDuration(configPath string) time.Duration {
 	return cast.ToDuration(Get(configPath))
 }
 
+// 取設定值,[]string
+func GetStringSlice(configPath string) []string {
+	return cast.ToStringSlice(Get(configPath))
+}
+
 // 取設定值,interface{}
 func Get(configPath string) any {
 	data := viper.Get(configPath)

@@ -15,6 +15,7 @@ const (
 	ValidRequestError    = "Bad HttpRequest"        //用於zaplog,internal error type
 	ConfigError          = "config error"           //用於zaplog,internal error type
 	PanicError           = "panic error"            //用於zaplog,internal error type
+	MiddlewareError      = "middleware error"       //用於zaplog,internal error type
 )
 
 type RedisError string

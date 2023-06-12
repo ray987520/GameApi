@@ -1,6 +1,10 @@
 {
     "application": {
-        "listenPort": ":8080"
+        "listenPort": ":8080",
+        "apiToken": [
+            "999",
+            "888"
+        ]
     },
     "trace": {
         "idFieldName": "traceid"

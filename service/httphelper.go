@@ -4,13 +4,23 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	"TestAPI/enum/innererror"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/zaplog"
+	"net/http"
 	"net/url"
+
+	"moul.io/http2curl"
+)
+
+const (
+	logResponse             = "Log Response"
+	getHttpResponseFunction = "GetHttpResponse"
 )
 
 // 封裝Http Repsonse
-func GetHttpResponse(code string, requestTime, traceCode string, data interface{}) entity.BaseHttpResponse {
+func GetHttpResponse(code string, requestTime, traceId string, data interface{}) entity.BaseHttpResponse {
 	//在不正常response code完全沒賦值時,預設為UnknowError
 	if code == string(errorcode.Default) {
 		code = string(errorcode.UnknowError)
@@ -25,9 +35,10 @@ func GetHttpResponse(code string, requestTime, traceCode string, data interface{
 			Code:      code,
 			Message:   errorMessage,
 			DateTime:  requestTime,
-			TraceCode: traceCode,
+			TraceCode: traceId,
 		},
 	}
+	zaplog.Infow(logResponse, innererror.FunctionNode, getHttpResponseFunction, innererror.TraceNode, traceId, "response", resp)
 	return resp
 }
 
@@ -42,5 +53,14 @@ func UrlDecode(data string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return decodeData, err
+	return decodeData, nil
+}
+
+// 將http request內容轉成curl字串,方便log與復現
+func HttpRequest2Curl(req *http.Request) (string, error) {
+	curl, err := http2curl.GetCurlCommand(req)
+	if err != nil {
+		return "", err
+	}
+	return curl.String(), nil
 }

@@ -3,6 +3,8 @@ package router
 import (
 	"TestAPI/controller"
 	"TestAPI/enum/errorcode"
+	"TestAPI/enum/innererror"
+	"TestAPI/enum/middlewareid"
 	"TestAPI/service"
 	"net/http"
 
@@ -10,12 +12,15 @@ import (
 
 	esid "TestAPI/enum/externalserviceid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/mconfig"
+	"TestAPI/external/service/zaplog"
 
 	"net/http/pprof"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"golang.org/x/exp/slices"
 )
 
 // api router結構
@@ -27,12 +32,13 @@ type Route struct {
 }
 
 var (
-	routes []Route
+	routes    []Route
+	apiTokens = mconfig.GetStringSlice("application.apiToken") //api auth tokens
 )
 
 const (
-	apitoken            = "999" //api auth token
 	responseFormatError = "Http Response Json Format Error"
+	genTraceIdError     = "Gen traceID Error"
 	authHeader          = "Authorization"
 	traceHeader         = "traceid"
 	requestTimeHeader   = "requesttime"
@@ -40,6 +46,8 @@ const (
 	swaggerPath         = "/swagger"
 	apiPath             = "/api"
 	pprofPath           = "/debug"
+	logRequest          = "Log Request"
+	logResponse         = "Log Response"
 )
 
 // 初始化,註冊所有api controller/middleware跟api path對應
@@ -81,8 +89,9 @@ func initPprofRouter(router *mux.Router) {
 // 使用mux Router,分不同前路徑規則劃分為swagger|api,使用不同middleware
 func NewRouter() http.Handler {
 	r := mux.NewRouter()
-	//swagger走自己的路徑不用經過middleware,/swagger
-	r.PathPrefix(swaggerPath).Handler(httpSwagger.WrapHandler)
+	//swagger走自己的路徑不用經過middleware,/swagger,default寫法:r.PathPrefix(swaggerPath).Handler(httpSwagger.WrapHandler)
+	//部分ui畫面可以自訂的寫法如下,可以控制有沒有swagger外框,插入plugin/uiconfig的JS
+	r.PathPrefix(swaggerPath).Handler(httpSwagger.Handler(httpSwagger.Layout(httpSwagger.StandaloneLayout), httpSwagger.DeepLinking(true)))
 	//pprof走自己的路徑不用經過middleware,/debug
 	pprofRouter := r.PathPrefix(pprofPath).Subrouter()
 	initPprofRouter(pprofRouter)
@@ -110,7 +119,8 @@ func IPWhiteListMiddleware
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		token := req.Header.Get(authHeader)
-		if token != apitoken {
+		//如果白名單auth token不包含輸入token就返回驗證失敗,GO1.18支援原生判斷slice contains
+		if !slices.Contains(apiTokens, token) {
 			reqTime := req.Header.Get(requestTimeHeader)
 			traceID := req.Header.Get(traceHeader)
 			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceID, "")
@@ -119,6 +129,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				data = []byte(responseFormatError)
 			}
 			w.Write(data)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.AuthMiddleware, innererror.TraceNode, traceID, "input token", token)
 			return
 		}
 		next.ServeHTTP(w, req)
@@ -129,9 +140,20 @@ func AuthMiddleware(next http.Handler) http.Handler {
 func TraceIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		traceID, err := es.Gen(es.AddTraceMap("", string(esid.UuidGen)))
+		//唯一的traceID產生失敗就返回異常
 		if err != nil {
+			reqTime := es.ApiTimeString(es.LocalNow(8))
+			response := service.GetHttpResponse(string(errorcode.UnknowError), reqTime, traceID, "")
+			data, err := es.JsonMarshal(traceID, response)
+			if err != nil {
+				data = []byte(responseFormatError)
+			}
+			w.Write(data)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.TraceIDMiddleware, innererror.TraceNode, traceID)
 			return
 		}
+		//記錄原始http request
+		logOriginRequest(req, traceID)
 		req.Header.Add(traceHeader, traceID)
 		req.Header.Add(requestTimeHeader, es.ApiTimeString(es.LocalNow(8)))
 		req.Header.Add(errorCodeHeader, string(errorcode.Default))
@@ -143,19 +165,28 @@ func TraceIDMiddleware(next http.Handler) http.Handler {
 func ErrorHandleMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		next.ServeHTTP(w, req)
+		traceID := req.Header.Get(traceHeader)
+		zaplog.Infow(logResponse, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, "responseHeaders", w.Header())
 		//在response之後檢查
 		errorCode := req.Header.Get(errorCodeHeader)
+		//正常的話errorCode應為0或其他值,空值代表異常結束
 		if errorCode == "" {
 			reqTime := req.Header.Get(requestTimeHeader)
-			traceID := req.Header.Get(traceHeader)
 			response := service.GetHttpResponse(string(errorcode.UnknowError), reqTime, traceID, "")
 			data, err := es.JsonMarshal(traceID, response)
 			if err != nil {
 				data = []byte(responseFormatError)
 			}
 			w.Write(data)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID)
 			return
 		}
 
 	})
+}
+
+// 記錄原始http request
+func logOriginRequest(req *http.Request, traceId string) {
+	curl, err := service.HttpRequest2Curl(req)
+	zaplog.Infow(logRequest, innererror.FunctionNode, middlewareid.LogOriginRequest, innererror.TraceNode, traceId, "curl", curl, "err", err)
 }

@@ -70,6 +70,7 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
+	moul.io/http2curl v1.0.0 // indirect
 )
 
 require (
@@ -84,6 +85,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/sony/sonyflake v1.1.0
 	github.com/swaggo/files v1.0.1 // indirect
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0
 	golang.org/x/sys v0.8.0 // indirect
