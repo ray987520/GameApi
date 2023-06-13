@@ -6,13 +6,14 @@ import (
 	"TestAPI/enum/innererror"
 	"TestAPI/enum/middlewareid"
 	"TestAPI/service"
+	"fmt"
 	"net/http"
 
 	_ "TestAPI/docs"
 
-	esid "TestAPI/enum/externalserviceid"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/mconfig"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
 
 	"net/http/pprof"
@@ -48,6 +49,8 @@ const (
 	pprofPath           = "/debug"
 	logRequest          = "Log Request"
 	logResponse         = "Log Response"
+	badErrorCode        = "no error code"
+	authTokenError      = "the authtoken invalid"
 )
 
 // 初始化,註冊所有api controller/middleware跟api path對應
@@ -124,12 +127,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			reqTime := req.Header.Get(requestTimeHeader)
 			traceID := req.Header.Get(traceHeader)
 			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceID, "")
-			data, err := es.JsonMarshal(traceID, response)
-			if err != nil {
+			data := es.JsonMarshal(traceID, response)
+			if data == nil {
 				data = []byte(responseFormatError)
 			}
 			w.Write(data)
-			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.AuthMiddleware, innererror.TraceNode, traceID, "input token", token)
+			err := fmt.Errorf(authTokenError)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.AuthMiddleware, innererror.TraceNode, traceID, innererror.ErrorInfoNode, err, "token", token)
 			return
 		}
 		next.ServeHTTP(w, req)
@@ -139,17 +143,18 @@ func AuthMiddleware(next http.Handler) http.Handler {
 // 添加自訂資料middleware,主要有traceid/requesttime
 func TraceIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		traceID, err := es.Gen(es.AddTraceMap("", string(esid.UuidGen)))
+		traceID := es.Gen(tracer.DefaultTraceId)
 		//唯一的traceID產生失敗就返回異常
-		if err != nil {
+		if traceID == "" {
 			reqTime := es.ApiTimeString(es.LocalNow(8))
 			response := service.GetHttpResponse(string(errorcode.UnknowError), reqTime, traceID, "")
-			data, err := es.JsonMarshal(traceID, response)
-			if err != nil {
+			data := es.JsonMarshal(traceID, response)
+			if data == nil {
 				data = []byte(responseFormatError)
 			}
 			w.Write(data)
-			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.TraceIDMiddleware, innererror.TraceNode, traceID)
+			err := fmt.Errorf(genTraceIdError)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.TraceIDMiddleware, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err, "traceID", traceID)
 			return
 		}
 		//記錄原始http request
@@ -173,12 +178,13 @@ func ErrorHandleMiddleware(next http.Handler) http.Handler {
 		if errorCode == "" {
 			reqTime := req.Header.Get(requestTimeHeader)
 			response := service.GetHttpResponse(string(errorcode.UnknowError), reqTime, traceID, "")
-			data, err := es.JsonMarshal(traceID, response)
-			if err != nil {
+			data := es.JsonMarshal(traceID, response)
+			if data == nil {
 				data = []byte(responseFormatError)
 			}
 			w.Write(data)
-			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID)
+			err := fmt.Errorf(badErrorCode)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, innererror.ErrorInfoNode, err, "errorCode", errorCode)
 			return
 		}
 
@@ -188,5 +194,5 @@ func ErrorHandleMiddleware(next http.Handler) http.Handler {
 // 記錄原始http request
 func logOriginRequest(req *http.Request, traceId string) {
 	curl, err := service.HttpRequest2Curl(req)
-	zaplog.Infow(logRequest, innererror.FunctionNode, middlewareid.LogOriginRequest, innererror.TraceNode, traceId, "curl", curl, "err", err)
+	zaplog.Infow(logRequest, innererror.FunctionNode, middlewareid.LogOriginRequest, innererror.TraceNode, traceId, "curl", curl, innererror.ErrorInfoNode, err)
 }

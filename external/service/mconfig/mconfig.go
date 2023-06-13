@@ -1,6 +1,8 @@
 package mconfig
 
 import (
+	"TestAPI/enum/innererror"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
 	"fmt"
 	"time"
@@ -12,9 +14,9 @@ import (
 
 const (
 	configFileName       = "config"
-	viperReadFileError   = "Viper Read Config File Error:%v"
-	viperReadConfigError = "Viper Read Config Error ,configPath:%s ,data:%v"
-	configChangeMessage  = "Config File Changed ,data:%s"
+	viperReadFileError   = "viper read config file error:%v"
+	viperReadConfigError = "viper read config error ,configPath:%s ,data:%v"
+	configChangeMessage  = "config file changed ,data:%s"
 )
 
 // 初始化viper
@@ -24,9 +26,9 @@ func init() {
 	err := viper.ReadInConfig()
 	//讀取設定檔失敗,不繼續執行代碼
 	if err != nil {
-		msg := fmt.Sprintf(viperReadFileError, err)
-		zaplog.Error(msg)
-		panic(msg)
+		err = fmt.Errorf(viperReadFileError, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, innererror.MConfigInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		panic(err)
 	}
 	//動態監看設定檔更新
 	viper.WatchConfig()
@@ -68,7 +70,7 @@ func Get(configPath string) any {
 	//如果找不到設定值,不希望代碼繼續執行
 	if data == nil {
 		err := fmt.Errorf(viperReadConfigError, configPath, data)
-		zaplog.Error(err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, innererror.MConfigGet, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
 		panic(err)
 	}
 	return data

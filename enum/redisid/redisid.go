@@ -1,37 +1,21 @@
 package redisid
 
-import (
-	"fmt"
-	"strconv"
-)
+type RedisId string
 
+// 列管所有redis CRUD funcion,用於traceMap,redis以rds_開頭
 const (
-	RedisIdFormat = "RDS%s"
-)
-
-type RedisId int
-
-// RedisId轉成string添加SQL標籤
-func (redisId RedisId) String() string {
-	id := strconv.Itoa(int(redisId))
-	return fmt.Sprintf(RedisIdFormat, id)
-}
-
-// 列管所有redis CRUD funcion,用於traceMap,調用的順序交錯所以編為流水號
-const (
-	Unknow RedisId = iota
-	GetConnectTokenCache
-	SetConnectTokenCache
-	ClearPlayerInfoCache
-	GetPlayerInfoCache
-	SetPlayerInfoCache
-	SetKey
-	GetGameSequenceNumber
-	GetGameSequenceNumbers
-	GetFinishGameResultTokenCache
-	SetFinishGameResultTokenCache
-	GetPlayerWalletCache
-	SetPlayerWalletCache
-	IncrConnectTokenBetCount
-	ClearPlayerWalletCache
+	GetConnectTokenCache          RedisId = "rds_GetConnectTokenCache"
+	SetConnectTokenCache          RedisId = "rds_SetConnectTokenCache"
+	ClearPlayerInfoCache          RedisId = "rds_ClearPlayerInfoCache"
+	GetPlayerInfoCache            RedisId = "rds_GetPlayerInfoCache"
+	SetPlayerInfoCache            RedisId = "rds_SetPlayerInfoCache"
+	SetKey                        RedisId = "rds_SetKey"
+	GetGameSequenceNumber         RedisId = "rds_GetGameSequenceNumber"
+	GetGameSequenceNumbers        RedisId = "rds_GetGameSequenceNumbers"
+	GetFinishGameResultTokenCache RedisId = "rds_GetFinishGameResultTokenCache"
+	SetFinishGameResultTokenCache RedisId = "rds_SetFinishGameResultTokenCache"
+	GetPlayerWalletCache          RedisId = "rds_GetPlayerWalletCache"
+	SetPlayerWalletCache          RedisId = "rds_SetPlayerWalletCache"
+	IncrConnectTokenBetCount      RedisId = "rds_IncrConnectTokenBetCount"
+	ClearPlayerWalletCache        RedisId = "rds_ClearPlayerWalletCache"
 )

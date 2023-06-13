@@ -34,11 +34,11 @@ func ApiTimeString(t time.Time) string {
 }
 
 // 按format parse時間
-func ParseTime(traceMap, format, timeString string) (t time.Time, err error) {
-	t, err = time.Parse(format, timeString)
+func ParseTime(traceMap, format, timeString string) (t time.Time, isOK bool) {
+	t, err := time.Parse(format, timeString)
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.ParseTime, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", format, "timeString", timeString)
-		return t, err
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.ParseTime, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "format", format, "timeString", timeString)
+		return t, false
 	}
-	return t, nil
+	return t, true
 }

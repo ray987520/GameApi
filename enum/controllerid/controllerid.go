@@ -2,24 +2,24 @@ package controllerid
 
 type ControllerId string
 
-// 列管所有controller,用於traceMap,對應文件所以特定編號
+// 列管所有controller,用於traceMap,controller以小寫c_開頭
 const (
-	CreateGuestConnectToken ControllerId = "CR1.0"
-	AuthConnectToken        ControllerId = "CR1.1"
-	UpdateTokenLocation     ControllerId = "CR1.2"
-	GetConnectTokenInfo     ControllerId = "CR1.3"
-	GetConnectTokenAmount   ControllerId = "CR1.4"
-	DelConnectToken         ControllerId = "CR1.5"
-	GetSequenceNumber       ControllerId = "CR2.1"
-	GetSequenceNumbers      ControllerId = "CR2.2"
-	RoundCheck              ControllerId = "CR2.3"
-	GameResult              ControllerId = "CR3.1"
-	FinishGameResult        ControllerId = "CR3.2"
-	AddGameLog              ControllerId = "CR3.3"
-	OrderList               ControllerId = "CR4.1"
-	RollOut                 ControllerId = "CR5.1"
-	RollIn                  ControllerId = "CR5.2"
-	Settlement              ControllerId = "CR6.1"
-	Distribution            ControllerId = "CR6.2"
-	CurrencyList            ControllerId = "CR7.1"
+	CreateGuestConnectToken ControllerId = "c_CreateGuestConnectToken"
+	AuthConnectToken        ControllerId = "c_AuthConnectToken"
+	UpdateTokenLocation     ControllerId = "c_UpdateTokenLocation"
+	GetConnectTokenInfo     ControllerId = "c_GetConnectTokenInfo"
+	GetConnectTokenAmount   ControllerId = "c_GetConnectTokenAmount"
+	DelConnectToken         ControllerId = "c_DelConnectToken"
+	GetSequenceNumber       ControllerId = "c_GetSequenceNumber"
+	GetSequenceNumbers      ControllerId = "c_GetSequenceNumbers"
+	RoundCheck              ControllerId = "c_RoundCheck"
+	GameResult              ControllerId = "c_GameResult"
+	FinishGameResult        ControllerId = "c_FinishGameResult"
+	AddGameLog              ControllerId = "c_AddGameLog"
+	OrderList               ControllerId = "c_OrderList"
+	RollOut                 ControllerId = "c_RollOut"
+	RollIn                  ControllerId = "c_RollIn"
+	Settlement              ControllerId = "c_Settlement"
+	Distribution            ControllerId = "c_Distribution"
+	CurrencyList            ControllerId = "c_CurrencyList"
 )

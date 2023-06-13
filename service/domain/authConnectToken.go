@@ -4,29 +4,31 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/innererror"
-	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
 	"fmt"
 	"net/http"
 )
 
 type AuthConnectTokenService struct {
-	Request  entity.AuthConnectTokenRequest
-	TraceMap string
+	Request entity.AuthConnectTokenRequest
 }
 
+const (
+	tokenExpire = "token expired"
+)
+
 // databinding&validate
-func ParseAuthConnectTokenRequest(traceMap string, r *http.Request) (request entity.AuthConnectTokenRequest, err error) {
-	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
+func ParseAuthConnectTokenRequest(traceId string, r *http.Request) (request entity.AuthConnectTokenRequest, err error) {
+	body, err := readHttpRequestBody(traceId, r, &request)
 	if err != nil {
 		return request, err
 	}
 
-	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
+	err = parseJsonBody(traceId, body, &request)
 	if err != nil {
 		return request, err
 	}
@@ -39,7 +41,7 @@ func ParseAuthConnectTokenRequest(traceMap string, r *http.Request) (request ent
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
 	//validate request
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return request, err
 	}
@@ -49,26 +51,26 @@ func ParseAuthConnectTokenRequest(traceMap string, r *http.Request) (request ent
 
 func (service *AuthConnectTokenService) Exec() interface{} {
 	//catch panic
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
 	//get account, currency, gameId from token
-	account, currency, gameId := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, false)
+	account, currency, gameId := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, false)
 	if account == "" {
 		return nil
 	}
 
 	//token沒問題的話,撈playerInfo,正確的話寫進GameToken,並放進redis
-	playerInfo, isOK := getPlayerInfo(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerInfo)), &service.Request.BaseSelfDefine, account, currency, gameId)
+	playerInfo, isOK := getPlayerInfo(&service.Request.BaseSelfDefine, account, currency, gameId)
 	if !isOK {
 		return nil
 	}
 
 	//insert token
-	isOK = addConnectToken2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddConnectToken2Db)), &service.Request.BaseSelfDefine, service.Request.Token, account, currency, service.Request.Ip, gameId)
+	isOK = addConnectToken2Db(&service.Request.BaseSelfDefine, service.Request.Token, account, currency, service.Request.Ip, gameId)
 	if !isOK {
 		return nil
 	}
@@ -81,25 +83,25 @@ func (service *AuthConnectTokenService) Exec() interface{} {
 }
 
 // 解密aes token,若超過expiretime能解密也無效
-func parseConnectToken(traceMap string, selfDefine *entity.BaseSelfDefine, token string, passExpire bool) (account, currency string, gameId int) {
+func parseConnectToken(selfDefine *entity.BaseSelfDefine, token string, passExpire bool) (account, currency string, gameId int) {
 	var tokenData entity.ConnectToken
 
 	//aes128 decrypt token
-	data, err := es.Aes128Decrypt(es.AddTraceMap(traceMap, string(esid.Aes128Decrypt)), token)
-	if err != nil {
+	data := es.Aes128Decrypt(selfDefine.TraceID, token)
+	if data == nil {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return "", "", 0
 	}
 
 	//parse decrypted data
-	err = es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), data, &tokenData)
-	if err != nil {
+	isOK := es.JsonUnMarshal(selfDefine.TraceID, data, &tokenData)
+	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return "", "", 0
 	}
 
 	//validate token model
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), tokenData) {
+	if !IsValid(selfDefine.TraceID, tokenData) {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return "", "", 0
 	}
@@ -108,8 +110,8 @@ func parseConnectToken(traceMap string, selfDefine *entity.BaseSelfDefine, token
 	if !passExpire {
 		now := es.Timestamp()
 		if now > tokenData.ExpitreTime {
-			err = fmt.Errorf("token expired")
-			zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseConnectToken, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
+			err := fmt.Errorf(tokenExpire)
+			zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseConnectToken, innererror.TraceNode, selfDefine.TraceID, innererror.ErrorInfoNode, err)
 			selfDefine.ErrorCode = string(errorcode.BadParameter)
 			return "", "", 0
 		}
@@ -120,8 +122,8 @@ func parseConnectToken(traceMap string, selfDefine *entity.BaseSelfDefine, token
 }
 
 // ConnectToken添加到GameToken
-func addConnectToken2Db(traceMap string, selfDefine *entity.BaseSelfDefine, token, account, currency, ip string, gameId int) bool {
-	isOK := database.AddConnectToken(es.AddTraceMap(traceMap, sqlid.AddConnectToken.String()), token, account, currency, ip, gameId, es.LocalNow(8))
+func addConnectToken2Db(selfDefine *entity.BaseSelfDefine, token, account, currency, ip string, gameId int) bool {
+	isOK := database.AddConnectToken(selfDefine.TraceID, token, account, currency, ip, gameId, es.LocalNow(8))
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
@@ -129,8 +131,8 @@ func addConnectToken2Db(traceMap string, selfDefine *entity.BaseSelfDefine, toke
 }
 
 // 取PlayerInfo(Base|BetCount|Wallet)
-func getPlayerInfo(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) (entity.AuthConnectTokenResponse, bool) {
-	playerInfo, err := database.GetPlayerInfo(es.AddTraceMap(traceMap, sqlid.GetPlayerInfo.String()), account, currency, gameId)
+func getPlayerInfo(selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) (entity.AuthConnectTokenResponse, bool) {
+	playerInfo, err := database.GetPlayerInfo(selfDefine.TraceID, account, currency, gameId)
 	if err != nil {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return entity.AuthConnectTokenResponse{}, false

@@ -1,8 +1,11 @@
 package es
 
 import (
+	esid "TestAPI/enum/externalserviceid"
+	"TestAPI/enum/innererror"
 	"TestAPI/external/service/mconfig"
-	"errors"
+	"TestAPI/external/service/zaplog"
+	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -17,16 +20,18 @@ type ConnectTokenClaims struct {
 }
 
 const (
-	issuer = "GameAPI"
+	issuer          = "GameAPI"
+	signStringError = "gen token error:%v"
+	parseJwtError   = "parse jwt token error:%v"
+	getJwtDataError = "get data of jwt error:%v"
 )
 
-// jwt secret key
 var (
-	jwtSecret = []byte(mconfig.GetString("crypt.jwtKey"))
+	jwtSecret = []byte(mconfig.GetString("crypt.jwtKey")) // jwt secret key
 )
 
 // 產生JWT TOKEN
-func CreateConnectToken(traceMap string, account, currency string, gameId int) (tokenString string, err error) {
+func CreateConnectToken(traceId string, account, currency string, gameId int) (tokenString string) {
 	now := UtcNow()
 	claims := new(ConnectTokenClaims)
 	claims.Account = account
@@ -36,24 +41,34 @@ func CreateConnectToken(traceMap string, account, currency string, gameId int) (
 	claims.IssuedAt = now.Unix()
 	claims.ExpiresAt = now.Add(10 * time.Minute).Unix()
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err = jwtToken.SignedString(jwtSecret)
+	tokenString, err := jwtToken.SignedString(jwtSecret)
 	if err != nil {
-		return "", err
+		err = fmt.Errorf(signStringError, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtCreateConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "tokenString", tokenString, "jwtSecret", jwtSecret)
+		return ""
 	}
-	return tokenString, nil
+	return tokenString
 }
 
 // 驗證JWT TOKEN
-func ValidConnectToken(traceMap string, tokenString string) (*ConnectTokenClaims, error) {
+func ValidConnectToken(traceId string, tokenString string) *ConnectTokenClaims {
+	//解析jwt token
 	token, err := jwt.ParseWithClaims(tokenString, &ConnectTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
 	})
 	if err != nil {
-		return nil, errors.New("invalid")
+		err = fmt.Errorf(parseJwtError, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "tokenString", tokenString, "jwtSecret", jwtSecret)
+		return nil
 	}
+
 	// 從 raw token 中取回資訊
 	if claims, ok := token.Claims.(*ConnectTokenClaims); ok && token.Valid {
-		return claims, nil
+		return claims
 	}
-	return nil, errors.New("invalid")
+
+	//無法成功取回對應格式資料就是jwt字串異常
+	err = fmt.Errorf(getJwtDataError, err)
+	zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "tokenString", tokenString, "jwtSecret", jwtSecret)
+	return nil
 }

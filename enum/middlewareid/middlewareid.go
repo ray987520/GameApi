@@ -2,11 +2,11 @@ package middlewareid
 
 type MiddlewareId string
 
-// 列管middleware function,用於traceMap
+// 列管middleware function,用於traceMap,middleware以mw_開頭
 const (
-	AuthMiddleware        MiddlewareId = "AuthMiddleware"
-	TraceIDMiddleware     MiddlewareId = "TraceIDMiddleware"
-	ErrorHandleMiddleware MiddlewareId = "ErrorHandleMiddleware"
-	IPWhiteListMiddleware MiddlewareId = "IPWhiteListMiddleware"
-	LogOriginRequest      MiddlewareId = "logOriginRequest"
+	AuthMiddleware        MiddlewareId = "mw_AuthMiddleware"
+	TraceIDMiddleware     MiddlewareId = "mw_TraceIDMiddleware"
+	ErrorHandleMiddleware MiddlewareId = "mw_ErrorHandleMiddleware"
+	IPWhiteListMiddleware MiddlewareId = "mw_IPWhiteListMiddleware"
+	LogOriginRequest      MiddlewareId = "mw_logOriginRequest"
 )

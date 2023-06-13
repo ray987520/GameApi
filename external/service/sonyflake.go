@@ -3,7 +3,9 @@ package es
 import (
 	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/innererror"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -11,7 +13,9 @@ import (
 )
 
 const (
-	sonyFlakeBaseTime = "2023-01-01 00:00:00.000" //需要設置一個固定時間起點讓sonyFlakeID的timestamp區段不重複
+	sonyFlakeBaseTime  = "2023-01-01 00:00:00.000" //需要設置一個固定時間起點讓sonyFlakeID的timestamp區段不重複
+	initFlakeTimeError = "init sonyflake base time error:%v"
+	flakeInstanceError = "sonyflake instance error"
 )
 
 var sonyFlake *sonyflake.Sonyflake
@@ -27,7 +31,8 @@ func getMachineID() (machineID uint16, err error) {
 func init() {
 	beginTime, err := time.Parse(DbTimeFormat, sonyFlakeBaseTime)
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.TimeParseError, innererror.ErrorInfoNode, err)
+		err = fmt.Errorf(initFlakeTimeError, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
 		return
 	}
 	st := sonyflake.Settings{
@@ -38,16 +43,18 @@ func init() {
 }
 
 // 產生sonyFlakeID
-func Gen(traceMap string) (uuid string, err error) {
+func Gen(traceId string) (uuid string) {
 	if sonyFlake == nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.InitFlakeError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
-		return "", err
+		err := fmt.Errorf(flakeInstanceError)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		return ""
 	}
 	id, err := sonyFlake.NextID()
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.ErrorTypeNode, innererror.GenUidError, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
-		return "", err
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		return ""
 	}
+	//轉成16進位數字字串(比較短)
 	uuid = strconv.FormatUint(id, 16)
-	return uuid, nil
+	return uuid
 }

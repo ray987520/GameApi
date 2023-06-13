@@ -83,20 +83,20 @@ func GetPlayerInfoCache(traceMap string, account, currency string, gameId int) (
 // 設置玩家基本資料
 func SetPlayerInfoCache(traceMap string, data entity.AuthConnectTokenResponse, token string) bool {
 	baseKey := fmt.Sprintf(playerInfoKey, data.GameID, data.PlayerBase.Currency, data.MemberAccount)
-	setKey(es.AddTraceMap(traceMap, redisid.SetKey.String()), baseKey, data.PlayerBase, 0)
+	setKey(es.AddTraceMap(traceMap, string(redisid.SetKey)), baseKey, data.PlayerBase, 0)
 	betCountKey := fmt.Sprintf(playerBetCountKey, token)
-	setKey(es.AddTraceMap(traceMap, redisid.SetKey.String()), betCountKey, data.PlayerBetCount.BetCount, 0)
+	setKey(es.AddTraceMap(traceMap, string(redisid.SetKey)), betCountKey, data.PlayerBetCount.BetCount, 0)
 	walletKey := fmt.Sprintf(playerWalletKey, data.PlayerBase.Currency, data.MemberAccount)
-	setKey(es.AddTraceMap(traceMap, redisid.SetKey.String()), walletKey, data.PlayerWallet, 10)
+	setKey(es.AddTraceMap(traceMap, string(redisid.SetKey)), walletKey, data.PlayerWallet, 10)
 	return true
 }
 
 // 設置玩家基本資料跟錢包
 func SetPlayerBaseAndWallet(traceMap string, data entity.AuthConnectTokenResponse) bool {
 	baseKey := fmt.Sprintf(playerInfoKey, data.GameID, data.PlayerBase.Currency, data.MemberAccount)
-	setKey(es.AddTraceMap(traceMap, redisid.SetKey.String()), baseKey, data.PlayerBase, 0)
+	setKey(es.AddTraceMap(traceMap, string(redisid.SetKey)), baseKey, data.PlayerBase, 0)
 	walletKey := fmt.Sprintf(playerWalletKey, data.PlayerBase.Currency, data.MemberAccount)
-	setKey(es.AddTraceMap(traceMap, redisid.SetKey.String()), walletKey, data.PlayerWallet, 10)
+	setKey(es.AddTraceMap(traceMap, string(redisid.SetKey)), walletKey, data.PlayerWallet, 10)
 	return true
 }
 

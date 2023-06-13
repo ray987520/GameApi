@@ -90,3 +90,16 @@ type ViperError string
 const (
 	ReadConfigError ViperError = "Viper Read Config Error"
 )
+
+type MConfigId string
+
+// mconfig zaplog分類,cfg_開頭
+const (
+	MConfigInit           MConfigId = "cfg_init"
+	MConfigGet            MConfigId = "cfg_Get"
+	MConfigGetString      MConfigId = "cfg_GetString"
+	MConfigGetInt         MConfigId = "cfg_GetInt"
+	MConfigGetInt64       MConfigId = "cfg_GetInt64"
+	MConfigGetDuration    MConfigId = "cfg_GetDuration"
+	MConfigGetStringSlice MConfigId = "cfg_GetStringSlice"
+)

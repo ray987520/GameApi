@@ -4,9 +4,7 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	"TestAPI/enum/functionid"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 
 	"github.com/shopspring/decimal"
@@ -21,18 +19,17 @@ const (
 )
 
 type AddGameLogService struct {
-	Request  entity.AddGameLogRequest
-	TraceMap string
+	Request entity.AddGameLogRequest
 }
 
 // databinding&validate
-func ParseAddGameLogRequest(traceMap string, r *http.Request) (request entity.AddGameLogRequest, err error) {
-	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
+func ParseAddGameLogRequest(traceId string, r *http.Request) (request entity.AddGameLogRequest, err error) {
+	body, err := readHttpRequestBody(traceId, r, &request)
 	if err != nil {
 		return request, err
 	}
 
-	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
+	err = parseJsonBody(traceId, body, &request)
 	if err != nil {
 		return request, err
 	}
@@ -43,7 +40,7 @@ func ParseAddGameLogRequest(traceMap string, r *http.Request) (request entity.Ad
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return request, err
 	}
@@ -52,30 +49,30 @@ func ParseAddGameLogRequest(traceMap string, r *http.Request) (request entity.Ad
 
 func (service *AddGameLogService) Exec() (data interface{}) {
 	//catch panic
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
+	if isConnectTokenError(&service.Request.BaseSelfDefine, service.Request.Token) {
 		return nil
 	}
 
 	//從token取出currency
 	var currency string
-	if _, currency, _ = parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true); currency == "" {
+	if _, currency, _ = parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true); currency == "" {
 		return nil
 	}
 
 	//取匯率,後續計算統一幣值部分
-	exchangeRate := currency2ExchangeRate(es.AddTraceMap(service.TraceMap, string(functionid.Currency2ExchangeRate)), &service.Request.BaseSelfDefine, currency)
+	exchangeRate := currency2ExchangeRate(&service.Request.BaseSelfDefine, currency)
 	if exchangeRate == decimal.Zero {
 		return nil
 	}
 
 	//insert gamelog
-	isOK := addGameLog2Db(es.AddTraceMap(service.TraceMap, string(functionid.AddGameLog2Db)), &service.Request, exchangeRate)
+	isOK := addGameLog2Db(&service.Request, exchangeRate)
 	if !isOK {
 		return nil
 	}
@@ -85,8 +82,8 @@ func (service *AddGameLogService) Exec() (data interface{}) {
 }
 
 // 判斷connectToken是否正常
-func isConnectTokenError(traceMap string, selfDefine *entity.BaseSelfDefine, token string) bool {
-	if !isConnectTokenAlive(es.AddTraceMap(traceMap, string(functionid.IsConnectTokenAlive)), token) {
+func isConnectTokenError(selfDefine *entity.BaseSelfDefine, token string) bool {
+	if !isConnectTokenAlive(selfDefine.TraceID, token) {
 		selfDefine.ErrorCode = string(errorcode.Unauthorized)
 		return true
 	}
@@ -94,8 +91,8 @@ func isConnectTokenError(traceMap string, selfDefine *entity.BaseSelfDefine, tok
 }
 
 // currency轉成匯率
-func currency2ExchangeRate(traceMap string, selfDefine *entity.BaseSelfDefine, currency string) decimal.Decimal {
-	exchangeRate, err := database.GetCurrencyExchangeRate(es.AddTraceMap(traceMap, sqlid.GetCurrencyExchangeRate.String()), currency)
+func currency2ExchangeRate(selfDefine *entity.BaseSelfDefine, currency string) decimal.Decimal {
+	exchangeRate, err := database.GetCurrencyExchangeRate(selfDefine.TraceID, currency)
 	if err != nil {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return decimal.Zero
@@ -104,8 +101,8 @@ func currency2ExchangeRate(traceMap string, selfDefine *entity.BaseSelfDefine, c
 }
 
 // 添加gamelog到Db“
-func addGameLog2Db(traceMap string, data *entity.AddGameLogRequest, exchangeRate decimal.Decimal) bool {
-	isOK := database.AddGameLog(es.AddTraceMap(traceMap, sqlid.AddGameLog.String()), data.GameLog, exchangeRate)
+func addGameLog2Db(data *entity.AddGameLogRequest, exchangeRate decimal.Decimal) bool {
+	isOK := database.AddGameLog(data.TraceID, data.GameLog, exchangeRate)
 	if !isOK {
 		data.ErrorCode = string(errorcode.UnknowError)
 	}

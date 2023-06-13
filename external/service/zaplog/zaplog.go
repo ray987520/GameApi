@@ -44,9 +44,9 @@ var (
 
 const (
 	configFileName       = "config"
-	viperReadFileError   = "Viper Read Config File Error:%v"
-	viperReadConfigError = "Viper Read Config Error ,configPath:%s ,data:%v"
-	configChangeMessage  = "Config File Changed ,data:%s"
+	viperReadFileError   = "viper read config file error:%v"
+	viperReadConfigError = "viper read config error ,configPath:%s ,data:%v"
+	configChangeMessage  = "config file changed ,data:%s"
 )
 
 // 初始化viper,因為zaplog為最底層,跟mconfig又不同包,避免循環參照只能拉到同一層或是獨立viper
