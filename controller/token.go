@@ -6,6 +6,7 @@ import (
 	"TestAPI/enum/serviceid"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/mconfig"
+	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
 
@@ -31,7 +32,7 @@ var (
 // @Router		/api/token/createGuestConnectToken [get]
 func CreateGuestConnectToken(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.CreateGuestConnectToken), string(serviceid.ConcurrentEntry)), controllerid.CreateGuestConnectToken, r)
 	writeHttpResponse(w, traceId)
@@ -88,7 +89,7 @@ func writeHttpResponse(w http.ResponseWriter, traceID string) {
 // @Router		/api/v1.0/connectToken/authorization [post]
 func AuthConnectToken(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.AuthConnectToken), string(serviceid.ConcurrentEntry)), controllerid.AuthConnectToken, r)
 	writeHttpResponse(w, traceId)
@@ -102,7 +103,7 @@ func AuthConnectToken(w http.ResponseWriter, r *http.Request) {
 // @Router		/api/token/updateConnectTokenLocation [post]
 func UpdateTokenLocation(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.UpdateTokenLocation), string(serviceid.ConcurrentEntry)), controllerid.UpdateTokenLocation, r)
 	writeHttpResponse(w, traceId)
@@ -116,7 +117,7 @@ func UpdateTokenLocation(w http.ResponseWriter, r *http.Request) {
 // @Router		/api/token/getConnectTokenInfo [get]
 func GetConnectTokenInfo(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GetConnectTokenInfo), string(serviceid.ConcurrentEntry)), controllerid.GetConnectTokenInfo, r)
 	writeHttpResponse(w, traceId)
@@ -130,7 +131,7 @@ func GetConnectTokenInfo(w http.ResponseWriter, r *http.Request) {
 // @Router		/api/token/getConnectTokenAmount [get]
 func GetConnectTokenAmount(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GetConnectTokenAmount), string(serviceid.ConcurrentEntry)), controllerid.GetConnectTokenAmount, r)
 	writeHttpResponse(w, traceId)
@@ -144,7 +145,7 @@ func GetConnectTokenAmount(w http.ResponseWriter, r *http.Request) {
 // @Router		/api/token/delConnectToken [post]
 func DelConnectToken(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.DelConnectToken), string(serviceid.ConcurrentEntry)), controllerid.DelConnectToken, r)
 	writeHttpResponse(w, traceId)

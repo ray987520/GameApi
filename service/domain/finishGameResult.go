@@ -4,90 +4,91 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	"TestAPI/enum/functionid"
-	"TestAPI/enum/redisid"
-	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
 type FinishGameResultService struct {
-	Request  entity.FinishGameResultRequest
-	TraceMap string
+	Request entity.FinishGameResultRequest
 }
 
 // databinding&validate
-func ParseFinishGameResultRequest(traceMap string, r *http.Request) (request entity.FinishGameResultRequest, err error) {
-	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
-	if err != nil {
-		return request, err
+func ParseFinishGameResultRequest(traceId string, r *http.Request) (request entity.FinishGameResultRequest) {
+	body, isOK := readHttpRequestBody(traceId, r, &request)
+	//read body error
+	if !isOK {
+		return request
 	}
 
-	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
-	if err != nil {
-		return request, err
+	isOK = parseJsonBody(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
+		return request
 	}
 
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	//validate request
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+	return request
 }
 
 func (service *FinishGameResultService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	if isFinishGameResultConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsFinishGameResultConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
+	if isFinishGameResultConnectTokenError(&service.Request.BaseSelfDefine, service.Request.Token) {
 		return nil
 	}
 
-	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
+	account, currency, _ := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
 		return nil
 	}
 
 	//取用戶錢包,id會用來做rowlock
-	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
+	wallet, isOK := getPlayerWallet(&service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
 		return nil
 	}
 
 	//不存在GameResult的話寫GameResult跟RollIn,不存在RollIn只寫RollIn
-	isAddGameResultOK := addGameResult(es.AddTraceMap(service.TraceMap, string(functionid.AddGameResult)), &service.Request.BaseSelfDefine, service.Request.GameResult)
+	isAddGameResultOK := addGameResult(&service.Request.BaseSelfDefine, service.Request.GameResult)
 	if !isAddGameResultOK {
 		return nil
 	}
 
-	isAddRollHistoryOK := addRollInHistory(es.AddTraceMap(service.TraceMap, string(functionid.AddRollInHistory)), &service.Request.BaseSelfDefine, service.Request.GameResult, wallet)
+	isAddRollHistoryOK := addRollInHistory(&service.Request.BaseSelfDefine, service.Request.GameResult, wallet)
 	if !isAddRollHistoryOK {
 		return nil
 	}
 
-	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
+	database.ClearPlayerWalletCache(service.Request.TraceID, currency, account)
 	service.Request.ErrorCode = string(errorcode.Success)
 	return
 }
 
 // 檢查補單aes token活耀
-func isFinishGameResultConnectTokenAlive(traceMap string, token string) bool {
-	alive := database.GetFinishGameResultTokenAlive(es.AddTraceMap(traceMap, sqlid.GetFinishGameResultTokenAlive.String()), token)
+func isFinishGameResultConnectTokenAlive(traceId string, token string) bool {
+	alive := database.GetFinishGameResultTokenAlive(traceId, token)
 	return alive
 }
 
 // 判斷補單connectToken是否正常
-func isFinishGameResultConnectTokenError(traceMap string, selfDefine *entity.BaseSelfDefine, token string) (alive bool) {
-	alive = isFinishGameResultConnectTokenAlive(es.AddTraceMap(traceMap, string(functionid.IsFinishGameResultConnectTokenAlive)), token)
+func isFinishGameResultConnectTokenError(selfDefine *entity.BaseSelfDefine, token string) (alive bool) {
+	alive = isFinishGameResultConnectTokenAlive(selfDefine.TraceID, token)
 	if !alive {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 	}
@@ -95,9 +96,9 @@ func isFinishGameResultConnectTokenError(traceMap string, selfDefine *entity.Bas
 }
 
 // 取玩家錢包
-func getPlayerWallet(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency string) (data entity.PlayerWallet, isOK bool) {
-	data, err := database.GetPlayerWallet(es.AddTraceMap(traceMap, sqlid.GetPlayerWallet.String()), account, currency)
-	if err != nil {
+func getPlayerWallet(selfDefine *entity.BaseSelfDefine, account, currency string) (data entity.PlayerWallet, isOK bool) {
+	data, isOK = database.GetPlayerWallet(selfDefine.TraceID, account, currency)
+	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return entity.PlayerWallet{}, false
 	}
@@ -105,13 +106,15 @@ func getPlayerWallet(traceMap string, selfDefine *entity.BaseSelfDefine, account
 }
 
 // 補寫GameResult
-func addGameResult(traceMap string, selfDefine *entity.BaseSelfDefine, data entity.GameResult) (isOK bool) {
-	hasGameResult := database.IsExistsTokenGameResult(es.AddTraceMap(traceMap, sqlid.IsExistsTokenGameResult.String()), data.Token, data.GameSequenceNumber)
+func addGameResult(selfDefine *entity.BaseSelfDefine, data entity.GameResult) (isOK bool) {
+	hasGameResult := database.IsExistsTokenGameResult(selfDefine.TraceID, data.Token, data.GameSequenceNumber)
+	//if game result existed,pass
 	if hasGameResult {
 		return true
 	}
 
-	isOK = database.AddGameResult(es.AddTraceMap(traceMap, sqlid.AddGameResult.String()), data)
+	isOK = database.AddGameResult(selfDefine.TraceID, data)
+	//db error
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
@@ -119,13 +122,15 @@ func addGameResult(traceMap string, selfDefine *entity.BaseSelfDefine, data enti
 }
 
 // 補寫RollIn
-func addRollInHistory(traceMap string, selfDefine *entity.BaseSelfDefine, data entity.GameResult, wallet entity.PlayerWallet) (isOK bool) {
-	hasRollInHistory := database.IsExistsRollInHistory(es.AddTraceMap(traceMap, sqlid.IsExistsRollInHistory.String()), data.Token, data.GameSequenceNumber)
+func addRollInHistory(selfDefine *entity.BaseSelfDefine, data entity.GameResult, wallet entity.PlayerWallet) (isOK bool) {
+	hasRollInHistory := database.IsExistsRollInHistory(selfDefine.TraceID, data.Token, data.GameSequenceNumber)
+	//if rollIn history existed,pass
 	if hasRollInHistory {
 		return true
 	}
 
-	isOK = database.AddRollInHistory(es.AddTraceMap(traceMap, sqlid.AddRollInHistory.String()), data, wallet, es.LocalNow(8))
+	isOK = database.AddRollInHistory(selfDefine.TraceID, data, wallet, es.LocalNow(8))
+	//db error
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}

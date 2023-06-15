@@ -7,6 +7,7 @@ import (
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
@@ -41,7 +42,7 @@ func ParseSettlementRequest(traceMap string, r *http.Request) (request entity.Se
 }
 
 func (service *SettlementService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

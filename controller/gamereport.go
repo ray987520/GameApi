@@ -4,6 +4,7 @@ import (
 	"TestAPI/enum/controllerid"
 	"TestAPI/enum/serviceid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
 )
@@ -16,7 +17,7 @@ import (
 // @Router		/api/gameReport/orderList [get]
 func OrderList(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.OrderList), string(serviceid.ConcurrentEntry)), controllerid.OrderList, r)
 	writeHttpResponse(w, traceId)

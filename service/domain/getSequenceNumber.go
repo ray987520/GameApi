@@ -7,6 +7,7 @@ import (
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/redisid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
@@ -26,7 +27,7 @@ func ParseGetSequenceNumberRequest(traceMap string, r *http.Request) (request en
 }
 
 func (service *GetSequenceNumberService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

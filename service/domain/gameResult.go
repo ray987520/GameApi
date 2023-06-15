@@ -8,6 +8,7 @@ import (
 	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
@@ -42,7 +43,7 @@ func ParseGameResultRequest(traceMap string, r *http.Request) (request entity.Ga
 }
 
 func (service *GameResultService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

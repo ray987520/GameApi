@@ -28,5 +28,6 @@ type BaseSelfDefine struct {
 
 // 判斷是否已經有錯誤
 func (selfDefine *BaseSelfDefine) HasError() bool {
+	//selfDefine.ErrorCode default在middleware會被設為空字串
 	return selfDefine.ErrorCode != ""
 }

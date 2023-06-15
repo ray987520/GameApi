@@ -7,6 +7,7 @@ import (
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
@@ -41,7 +42,7 @@ func ParseUpdateTokenLocationRequest(traceMap string, r *http.Request) (request 
 }
 
 func (service *UpdateTokenLocationService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

@@ -4,6 +4,7 @@ import (
 	"TestAPI/enum/controllerid"
 	"TestAPI/enum/serviceid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
 )
@@ -16,7 +17,7 @@ import (
 // @Router		/api/transaction/rollOut [post]
 func RollOut(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.RollOut), string(serviceid.ConcurrentEntry)), controllerid.RollOut, r)
 	writeHttpResponse(w, traceId)
@@ -30,7 +31,7 @@ func RollOut(w http.ResponseWriter, r *http.Request) {
 // @Router		/api/transaction/rollIn [post]
 func RollIn(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
-	defer es.PanicTrace(traceId)
+	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
 	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.RollIn), string(serviceid.ConcurrentEntry)), controllerid.RollIn, r)
 	writeHttpResponse(w, traceId)

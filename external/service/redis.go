@@ -153,7 +153,7 @@ func (pool *RedisPool) IncrKey(traceMap string, key string) (data int64) {
 	data, err := redis.Int64(conn.Do("INCR", key))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKey, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
-		return 0
+		return -1
 	}
 	return data
 }
@@ -165,7 +165,7 @@ func (pool *RedisPool) IncrKeyBy(traceMap string, key string, count int) (data i
 	data, err := redis.Int64(conn.Do("INCRBY", key, count))
 	if err != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKeyBy, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err, "key", key)
-		return 0
+		return -1
 	}
 	return data
 }

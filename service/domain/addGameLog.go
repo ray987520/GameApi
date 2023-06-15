@@ -23,15 +23,17 @@ type AddGameLogService struct {
 }
 
 // databinding&validate
-func ParseAddGameLogRequest(traceId string, r *http.Request) (request entity.AddGameLogRequest, err error) {
-	body, err := readHttpRequestBody(traceId, r, &request)
-	if err != nil {
-		return request, err
+func ParseAddGameLogRequest(traceId string, r *http.Request) (request entity.AddGameLogRequest) {
+	body, isOK := readHttpRequestBody(traceId, r, &request)
+	//read body error
+	if !isOK {
+		return request
 	}
 
-	err = parseJsonBody(traceId, body, &request)
-	if err != nil {
-		return request, err
+	isOK = parseJsonBody(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
+		return request
 	}
 
 	request.Authorization = r.Header.Get(authHeader)
@@ -42,9 +44,9 @@ func ParseAddGameLogRequest(traceId string, r *http.Request) (request entity.Add
 
 	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+	return request
 }
 
 func (service *AddGameLogService) Exec() (data interface{}) {
@@ -92,8 +94,8 @@ func isConnectTokenError(selfDefine *entity.BaseSelfDefine, token string) bool {
 
 // currency轉成匯率
 func currency2ExchangeRate(selfDefine *entity.BaseSelfDefine, currency string) decimal.Decimal {
-	exchangeRate, err := database.GetCurrencyExchangeRate(selfDefine.TraceID, currency)
-	if err != nil {
+	exchangeRate := database.GetCurrencyExchangeRate(selfDefine.TraceID, currency)
+	if exchangeRate.Equal(decimal.Zero) {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return decimal.Zero
 	}

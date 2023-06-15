@@ -22,15 +22,17 @@ const (
 )
 
 // databinding&validate
-func ParseAuthConnectTokenRequest(traceId string, r *http.Request) (request entity.AuthConnectTokenRequest, err error) {
-	body, err := readHttpRequestBody(traceId, r, &request)
-	if err != nil {
-		return request, err
+func ParseAuthConnectTokenRequest(traceId string, r *http.Request) (request entity.AuthConnectTokenRequest) {
+	body, isOK := readHttpRequestBody(traceId, r, &request)
+	//read body error
+	if !isOK {
+		return request
 	}
 
-	err = parseJsonBody(traceId, body, &request)
-	if err != nil {
-		return request, err
+	isOK = parseJsonBody(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
+		return request
 	}
 
 	//read request header
@@ -43,10 +45,10 @@ func ParseAuthConnectTokenRequest(traceId string, r *http.Request) (request enti
 	//validate request
 	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
 
-	return request, nil
+	return request
 }
 
 func (service *AuthConnectTokenService) Exec() interface{} {
@@ -132,8 +134,8 @@ func addConnectToken2Db(selfDefine *entity.BaseSelfDefine, token, account, curre
 
 // 取PlayerInfo(Base|BetCount|Wallet)
 func getPlayerInfo(selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) (entity.AuthConnectTokenResponse, bool) {
-	playerInfo, err := database.GetPlayerInfo(selfDefine.TraceID, account, currency, gameId)
-	if err != nil {
+	playerInfo := database.GetPlayerInfo(selfDefine.TraceID, account, currency, gameId)
+	if playerInfo.GameAccount == "" {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return entity.AuthConnectTokenResponse{}, false
 	}

@@ -8,6 +8,7 @@ import (
 	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 	"strings"
 
@@ -45,7 +46,7 @@ func ParseRollInRequest(traceMap string, r *http.Request) (request entity.RollIn
 }
 
 func (service *RollInService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

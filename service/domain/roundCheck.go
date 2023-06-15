@@ -10,6 +10,7 @@ import (
 	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
 	"net/http"
 	"time"
@@ -56,7 +57,7 @@ func ParseRoundCheckRequest(traceMap string, r *http.Request) (request entity.Ro
 }
 
 func (service *RoundCheckService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

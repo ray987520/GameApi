@@ -5,19 +5,19 @@ import "github.com/gomodule/redigo/redis"
 //redis服務介面
 type IRedis interface {
 	//redis get key,return ([]byte)value
-	GetKey(string, string) ([]byte, error)
+	GetKey(string, string) []byte
 	//redis set key and set key ttl,ttl:0 =  no expire
-	SetKey(string, string, []byte, int) error
+	SetKey(string, string, []byte, int) bool
 	//redis del keys
-	DeleteKey(string, ...interface{}) error
+	DeleteKey(string, ...interface{}) bool
 	//redis lpush,use in mq
-	LPushList(string, string, []byte) error
+	LPushList(string, string, []byte) bool
 	//get a redis client,use in pipe/multi
 	GetClient(string) redis.Conn
 	//redis get keys
-	GetKeys(string, ...interface{}) ([][]byte, error)
+	GetKeys(string, ...interface{}) [][]byte
 	//redis incr
-	IncrKey(string, string) (int64, error)
+	IncrKey(string, string) int64
 	//redis incrby
-	IncrKeyBy(string, string, int) (int64, error)
+	IncrKeyBy(string, string, int) int64
 }

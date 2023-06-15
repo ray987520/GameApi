@@ -18,41 +18,12 @@ const (
 	MiddlewareError      = "middleware error"       //用於zaplog,internal error type
 )
 
-type RedisError string
-
-// 列管internal redis error,用於zaplog分類
-const (
-	InitRedisError      RedisError = "Init Redigo error"
-	GetKeyError         RedisError = "Redis GetKey error"
-	SetKeyError         RedisError = "Redis SetKey error"
-	DeleteKeyError      RedisError = "Redis DeleteKey error"
-	LPushListError      RedisError = "Redis LPushList error"
-	GetClientError      RedisError = "Redis GetClient error"
-	GetKeysError        RedisError = "Redis GetKeys error"
-	GetKeysPartialError RedisError = "Redis GetKeys partial error"
-	IncrKeyError        RedisError = "Redis IncrKey error"
-	IncrKeyByError      RedisError = "Redis IncrKeyBy error"
-)
-
 type JsonError string
 
 // 列管internal json序列反序列化 error,用於zaplog分類
 const (
 	JsonMarshalError   JsonError = "Json Marshal error"
 	JsonUnMarshalError JsonError = "Json UnMarshal error"
-)
-
-type SqlError string
-
-// 列管internal sql error,用於zaplog分類
-const (
-	InitGromError    SqlError = "Init Gorm error"
-	SelectError      SqlError = "Sql Select error"
-	UpdateError      SqlError = "Sql Update error"
-	DeleteError      SqlError = "Sql Delete error"
-	CreateError      SqlError = "Sql Create error"
-	BatchCreateError SqlError = "Sql BatchCreate error"
-	TransactionError SqlError = "Sql Transaction error"
 )
 
 type TimeError string
@@ -102,4 +73,12 @@ const (
 	MConfigGetInt64       MConfigId = "cfg_GetInt64"
 	MConfigGetDuration    MConfigId = "cfg_GetDuration"
 	MConfigGetStringSlice MConfigId = "cfg_GetStringSlice"
+)
+
+type StringExtend string
+
+// StringExtend zaplog分類,str_開頭
+const (
+	Atoi StringExtend = "str_Atoi"
+	Iota StringExtend = "str_Iota"
 )

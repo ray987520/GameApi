@@ -5,6 +5,7 @@ import (
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/functionid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
@@ -32,7 +33,7 @@ func ParseGetConnectTokenAmountRequest(traceMap string, r *http.Request) (reques
 }
 
 func (service *GetConnectTokenAmountService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

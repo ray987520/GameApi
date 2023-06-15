@@ -8,6 +8,7 @@ import (
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/mconfig"
+	"TestAPI/external/service/tracer"
 	"fmt"
 	"net/http"
 )
@@ -36,7 +37,7 @@ func ParseOrderListRequest(traceMap string, r *http.Request) (request entity.Ord
 }
 
 func (service *OrderListService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

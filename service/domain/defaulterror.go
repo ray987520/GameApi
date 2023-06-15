@@ -3,10 +3,10 @@ package domain
 import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/functionid"
 	"TestAPI/enum/innererror"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
 	iface "TestAPI/interface"
 	"io/ioutil"
@@ -17,8 +17,7 @@ import (
 )
 
 type DefaultErrorService struct {
-	Request  entity.DefaultError
-	TraceMap string
+	Request entity.DefaultError
 }
 
 var validate *validator.Validate
@@ -31,23 +30,25 @@ func init() {
 }
 
 // 無法找到對應service時由此產生job承載的resquest
-func ParseDefaultError(traceMap string, r *http.Request) (request entity.DefaultError, err error) {
+func ParseDefaultError(traceMap string, r *http.Request) (request entity.DefaultError) {
 	//read request header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
-	return request, nil
+	return request
 }
 
 // 驗證結構,按struct的validate tag
-func IsValid(traceMap string, data interface{}) bool {
+func IsValid(traceId string, data interface{}) bool {
 	err := validate.Struct(data)
+	//validate套件驗證到錯誤
 	if err != nil {
-		zaplog.Errorw(innererror.ValidRequestError, innererror.FunctionNode, functionid.IsValid, innererror.TraceNode, traceMap, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ValidRequestError, innererror.FunctionNode, functionid.IsValid, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
 		return false
 	}
+
 	return err == nil
 }
 
@@ -55,7 +56,7 @@ func IsValid(traceMap string, data interface{}) bool {
 func ValidateAccount(f1 validator.FieldLevel) bool {
 	match, err := regexp.MatchString("[a-zA-Z0-9_-]{3,32}", f1.Field().String())
 	if err != nil {
-		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ValidateAccount, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ValidateAccount, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
 		return false
 	}
 	return match
@@ -63,7 +64,7 @@ func ValidateAccount(f1 validator.FieldLevel) bool {
 
 func (service *DefaultErrorService) Exec() (data interface{}) {
 	//catch panic
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 	return nil
 }
 
@@ -72,21 +73,23 @@ func (service *DefaultErrorService) GetBaseSelfDefine() entity.BaseSelfDefine {
 }
 
 // 讀取http request body
-func readHttpRequestBody(traceMap string, r *http.Request, request iface.IRequest) ([]byte, error) {
+func readHttpRequestBody(traceId string, r *http.Request, request iface.IRequest) ([]byte, bool) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ReadHttpRequestBody, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
 		request.SetErrorCode(string(errorcode.BadParameter))
-		return nil, err
+		return nil, false
 	}
-	return body, nil
+	return body, true
 }
 
 // 解析request body json
-func parseJsonBody(traceMap string, body []byte, request iface.IRequest) error {
-	err := es.JsonUnMarshal(es.AddTraceMap(traceMap, string(esid.JsonUnMarshal)), body, &request)
-	if err != nil {
+func parseJsonBody(traceId string, body []byte, request iface.IRequest) bool {
+	isOK := es.JsonUnMarshal(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
 		request.SetErrorCode(string(errorcode.BadParameter))
-		return err
+		return false
 	}
-	return nil
+	return true
 }

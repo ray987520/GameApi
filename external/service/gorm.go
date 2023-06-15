@@ -77,7 +77,7 @@ func (gormDB *GormDB) Select(traceId string, model interface{}, sqlString string
 	tx := sqlDB.Raw(sqlString, params...).Scan(model)
 	if tx.Error != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlSelect, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
-		return 0
+		return -1
 	}
 	return tx.RowsAffected
 }
@@ -87,7 +87,7 @@ func (gormDB *GormDB) Update(traceId string, sqlString string, params ...interfa
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlUpdate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
-		return 0
+		return -1
 	}
 	return tx.RowsAffected
 }
@@ -97,7 +97,7 @@ func (gormDB *GormDB) Delete(traceId string, sqlString string, params ...interfa
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlDelete, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
-		return 0
+		return -1
 	}
 	return tx.RowsAffected
 }
@@ -107,7 +107,7 @@ func (gormDB *GormDB) Create(traceId string, sqlString string, params ...interfa
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlCreate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
-		return 0
+		return -1
 	}
 	return tx.RowsAffected
 }
@@ -117,7 +117,7 @@ func (gormDB *GormDB) BatchCreate(traceId string, tableName string, datas interf
 	tx := sqlDB.Table(tableName).CreateInBatches(datas, batchSize)
 	if tx.Error != nil {
 		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlBatchCreate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "tableName", tableName, "datas", datas)
-		return 0
+		return -1
 	}
 	return tx.RowsAffected
 }
@@ -184,7 +184,7 @@ func (gormDB *GormDB) Transaction(traceId string, sqlStrings []string, params ..
 	})
 	//如果grom transaction有異常就返回無更新筆數,因為transaction已經log不再加log
 	if err != nil {
-		return 0
+		return -1
 	}
 	return rowsAffect
 }

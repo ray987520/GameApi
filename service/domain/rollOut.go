@@ -8,6 +8,7 @@ import (
 	"TestAPI/enum/redisid"
 	"TestAPI/enum/sqlid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/tracer"
 	"net/http"
 	"strings"
 )
@@ -43,7 +44,7 @@ func ParseRollOutRequest(traceMap string, r *http.Request) (request entity.RollO
 }
 
 func (service *RollOutService) Exec() (data interface{}) {
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.TraceMap)
 
 	if service.Request.HasError() {
 		return nil

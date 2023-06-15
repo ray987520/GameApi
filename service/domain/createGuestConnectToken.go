@@ -3,21 +3,19 @@ package domain
 import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	esid "TestAPI/enum/externalserviceid"
-	"TestAPI/enum/functionid"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/str"
+	"TestAPI/external/service/tracer"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 type CreateGuestConnectTokenService struct {
-	Request  entity.CreateGuestConnectTokenRequest
-	TraceMap string
+	Request entity.CreateGuestConnectTokenRequest
 }
 
 // databinding&validate
-func ParseCreateGuestConnectTokenRequest(traceMap string, r *http.Request) (request entity.CreateGuestConnectTokenRequest, err error) {
+func ParseCreateGuestConnectTokenRequest(traceId string, r *http.Request) (request entity.CreateGuestConnectTokenRequest) {
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
@@ -29,31 +27,32 @@ func ParseCreateGuestConnectTokenRequest(traceMap string, r *http.Request) (requ
 	query := r.URL.Query()
 	request.Account = query.Get("account")
 	request.Currency = query.Get("currency")
-	gameId, err := strconv.Atoi(query.Get("gameID"))
-	if err != nil {
+	gameId, isOK := str.Atoi(traceId, query.Get("gameID"))
+	//convert error
+	if !isOK {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
 	request.GameId = gameId
 
 	//validate request
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+	return request
 }
 
 func (service *CreateGuestConnectTokenService) Exec() interface{} {
 	//catch panic
-	defer es.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
 	//gen a token
-	token := genConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.GenConnectToken)), &service.Request.BaseSelfDefine, service.Request.Account, service.Request.Currency, service.Request.GameId)
+	token := genConnectToken(&service.Request.BaseSelfDefine, service.Request.Account, service.Request.Currency, service.Request.GameId)
 	if token == "" {
 		return nil
 	}
@@ -65,7 +64,7 @@ func (service *CreateGuestConnectTokenService) Exec() interface{} {
 }
 
 // 創建token,aes128加密,包含gameId,currency,account跟過期時間600秒(timestamp)
-func genConnectToken(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) string {
+func genConnectToken(selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) string {
 	//new token data,Key:[gameId]_[currency]_[account],ExpitreTime:now+600Sec.
 	tokenData := entity.ConnectToken{
 		Key:         fmt.Sprintf("%d_%s_%s", gameId, currency, account),
@@ -73,15 +72,15 @@ func genConnectToken(traceMap string, selfDefine *entity.BaseSelfDefine, account
 	}
 
 	//token data to json []byte
-	data, err := es.JsonMarshal(es.AddTraceMap(traceMap, string(esid.JsonMarshal)), tokenData)
-	if err != nil {
+	data := es.JsonMarshal(selfDefine.TraceID, tokenData)
+	if data == nil {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return ""
 	}
 
 	//aes128 encrypt token data,return encrypted string
-	token, err := es.Aes128Encrypt(es.AddTraceMap(traceMap, string(esid.Aes128Encrypt)), data)
-	if err != nil {
+	token := es.Aes128Encrypt(selfDefine.TraceID, data)
+	if token == "" {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return ""
 	}
