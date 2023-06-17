@@ -5,13 +5,18 @@ import (
 	"TestAPI/enum/controllerid"
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/functionid"
-	"TestAPI/enum/serviceid"
+	"TestAPI/enum/innererror"
 	es "TestAPI/external/service"
+	"TestAPI/external/service/zaplog"
 	iface "TestAPI/interface"
 	"TestAPI/service/domain"
 	"net/http"
 
 	"golang.org/x/sync/syncmap"
+)
+
+const (
+	logRequestModel = "log request"
 )
 
 var (
@@ -31,130 +36,130 @@ func init() {
 }
 
 // 依照domainID分類初始化job資料
-func fetchJob(traceMap string, domainNo controllerid.ControllerId, r *http.Request) (job iface.IJob) {
+func fetchJob(traceId string, domainNo controllerid.ControllerId, r *http.Request) (job iface.IJob) {
 	switch domainNo {
 	case controllerid.CreateGuestConnectToken:
-		request, _ := domain.ParseCreateGuestConnectTokenRequest(es.AddTraceMap(traceMap, string(functionid.ParseCreateGuestConnectTokenRequest)), r)
+		request := domain.ParseCreateGuestConnectTokenRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseCreateGuestConnectTokenRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.CreateGuestConnectTokenService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.CreateGuestConnectToken)),
+			Request: request,
 		}
 	case controllerid.AuthConnectToken:
-		request, _ := domain.ParseAuthConnectTokenRequest(es.AddTraceMap(traceMap, string(functionid.ParseAuthConnectTokenRequest)), r)
+		request := domain.ParseAuthConnectTokenRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseAuthConnectTokenRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.AuthConnectTokenService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.AuthConnectToken)),
+			Request: request,
 		}
 	case controllerid.UpdateTokenLocation:
-		request, _ := domain.ParseUpdateTokenLocationRequest(es.AddTraceMap(traceMap, string(functionid.ParseUpdateTokenLocationRequest)), r)
+		request := domain.ParseUpdateTokenLocationRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseUpdateTokenLocationRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.UpdateTokenLocationService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.UpdateTokenLocation)),
+			Request: request,
 		}
 	case controllerid.GetConnectTokenInfo:
-		request, _ := domain.ParseGetConnectTokenInfoRequest(es.AddTraceMap(traceMap, string(functionid.ParseGetConnectTokenInfoRequest)), r)
+		request := domain.ParseGetConnectTokenInfoRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseGetConnectTokenInfoRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.GetConnectTokenInfoService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.GetConnectTokenInfo)),
+			Request: request,
 		}
 	case controllerid.GetConnectTokenAmount:
-		request, _ := domain.ParseGetConnectTokenAmountRequest(es.AddTraceMap(traceMap, string(functionid.ParseGetConnectTokenAmountRequest)), r)
+		request := domain.ParseGetConnectTokenAmountRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseGetConnectTokenAmountRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.GetConnectTokenAmountService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.GetConnectTokenAmount)),
+			Request: request,
 		}
 	case controllerid.DelConnectToken:
-		request, _ := domain.ParseDelConnectTokenRequest(es.AddTraceMap(traceMap, string(functionid.ParseDelConnectTokenRequest)), r)
+		request := domain.ParseDelConnectTokenRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseDelConnectTokenRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.DelConnectTokenService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.DelConnectToken)),
+			Request: request,
 		}
 	case controllerid.GetSequenceNumber:
-		request, _ := domain.ParseGetSequenceNumberRequest(es.AddTraceMap(traceMap, string(functionid.ParseGetSequenceNumberRequest)), r)
+		request := domain.ParseGetSequenceNumberRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseGetSequenceNumberRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.GetSequenceNumberService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.GetSequenceNumber)),
+			Request: request,
 		}
 	case controllerid.GetSequenceNumbers:
-		request, _ := domain.ParseGetSequenceNumbersRequest(es.AddTraceMap(traceMap, string(functionid.ParseGetSequenceNumbersRequest)), r)
+		request := domain.ParseGetSequenceNumbersRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseGetSequenceNumbersRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.GetSequenceNumbersService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.GetSequenceNumbers)),
+			Request: request,
 		}
 	case controllerid.RoundCheck:
-		request, _ := domain.ParseRoundCheckRequest(es.AddTraceMap(traceMap, string(functionid.ParseRoundCheckRequest)), r)
+		request := domain.ParseRoundCheckRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseRoundCheckRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.RoundCheckService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.RoundCheck)),
+			Request: request,
 		}
 	case controllerid.GameResult:
-		request, _ := domain.ParseGameResultRequest(es.AddTraceMap(traceMap, string(functionid.ParseGameResultRequest)), r)
+		request := domain.ParseGameResultRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseGameResultRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.GameResultService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.GameResult)),
+			Request: request,
 		}
 	case controllerid.FinishGameResult:
-		request, _ := domain.ParseFinishGameResultRequest(es.AddTraceMap(traceMap, string(functionid.ParseFinishGameResultRequest)), r)
+		request := domain.ParseFinishGameResultRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseFinishGameResultRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.FinishGameResultService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.FinishGameResult)),
+			Request: request,
 		}
 	case controllerid.AddGameLog:
-		request, _ := domain.ParseAddGameLogRequest(es.AddTraceMap(traceMap, string(functionid.ParseAddGameLogRequest)), r)
+		request := domain.ParseAddGameLogRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseAddGameLogRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.AddGameLogService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.AddGameLog)),
+			Request: request,
 		}
 	case controllerid.OrderList:
-		request, _ := domain.ParseOrderListRequest(es.AddTraceMap(traceMap, string(functionid.ParseOrderListRequest)), r)
+		request := domain.ParseOrderListRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseOrderListRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.OrderListService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.OrderList)),
+			Request: request,
 		}
 	case controllerid.RollOut:
-		request, _ := domain.ParseRollOutRequest(es.AddTraceMap(traceMap, string(functionid.ParseRollOutRequest)), r)
+		request := domain.ParseRollOutRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseRollOutRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.RollOutService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.RollOut)),
+			Request: request,
 		}
 	case controllerid.RollIn:
-		request, _ := domain.ParseRollInRequest(es.AddTraceMap(traceMap, string(functionid.ParseRollInRequest)), r)
+		request := domain.ParseRollInRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseRollInRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.RollInService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.RollIn)),
+			Request: request,
 		}
 	case controllerid.Settlement:
-		request, _ := domain.ParseSettlementRequest(es.AddTraceMap(traceMap, string(functionid.ParseSettlementRequest)), r)
+		request := domain.ParseSettlementRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseSettlementRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.SettlementService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.Settlement)),
+			Request: request,
 		}
 	case controllerid.Distribution:
-		request, _ := domain.ParseDistributionRequest(es.AddTraceMap(traceMap, string(functionid.ParseDistributionRequest)), r)
+		request := domain.ParseDistributionRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseDistributionRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.DistributionService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.Distribution)),
+			Request: request,
 		}
 	case controllerid.CurrencyList:
-		request, _ := domain.ParseCurrencyListRequest(es.AddTraceMap(traceMap, string(functionid.ParseCurrencyListRequest)), r)
+		request := domain.ParseCurrencyListRequest(traceId, r)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseCurrencyListRequest, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.CurrencyListService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.CurrencyList)),
+			Request: request,
 		}
 
 	default:
-		request, _ := domain.ParseDefaultError(es.AddTraceMap(traceMap, string(functionid.ParseDefaultError)), r)
+		request := domain.ParseDefaultError(traceId, r)
 		request.ErrorCode = string(errorcode.UnknowError)
+		zaplog.Infow(logRequestModel, innererror.FunctionNode, functionid.ParseDefaultError, innererror.TraceNode, traceId, innererror.DataNode, request)
 		job = &domain.DefaultErrorService{
-			Request:  request,
-			TraceMap: es.AddTraceMap(traceMap, string(serviceid.DefaultError)),
+			Request: request,
 		}
 	}
 	return job
 }
 
 // enqueue job
-func Entry(traceMap string, domainNo controllerid.ControllerId, r *http.Request) {
-	job := fetchJob(es.AddTraceMap(traceMap, string(serviceid.ConcurrentFetchJob)), domainNo, r)
+func Entry(traceId string, domainNo controllerid.ControllerId, r *http.Request) {
+	job := fetchJob(traceId, domainNo, r)
 	JobQueue <- job
 }

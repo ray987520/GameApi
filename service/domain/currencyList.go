@@ -37,6 +37,7 @@ func (service *CurrencyListService) Exec() interface{} {
 		return nil
 	}
 
+	//get support currency list
 	currencyList := getSupportCurrency(&service.Request.BaseSelfDefine)
 	if currencyList == nil {
 		return nil

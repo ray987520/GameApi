@@ -52,7 +52,7 @@ func IsValid(traceId string, data interface{}) bool {
 	return err == nil
 }
 
-// 驗證帳號
+// 自訂驗證帳號驗證器
 func ValidateAccount(f1 validator.FieldLevel) bool {
 	match, err := regexp.MatchString("[a-zA-Z0-9_-]{3,32}", f1.Field().String())
 	if err != nil {
@@ -75,11 +75,13 @@ func (service *DefaultErrorService) GetBaseSelfDefine() entity.BaseSelfDefine {
 // 讀取http request body
 func readHttpRequestBody(traceId string, r *http.Request, request iface.IRequest) ([]byte, bool) {
 	body, err := ioutil.ReadAll(r.Body)
+	//read request body error
 	if err != nil {
 		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ReadHttpRequestBody, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
 		request.SetErrorCode(string(errorcode.BadParameter))
 		return nil, false
 	}
+
 	return body, true
 }
 

@@ -2,8 +2,6 @@ package controller
 
 import (
 	"TestAPI/enum/controllerid"
-	"TestAPI/enum/serviceid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
@@ -18,7 +16,7 @@ func GetSequenceNumber(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GetSequenceNumber), string(serviceid.ConcurrentEntry)), controllerid.GetSequenceNumber, r)
+	service.Entry(traceId, controllerid.GetSequenceNumber, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -32,7 +30,7 @@ func GetSequenceNumbers(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GetSequenceNumbers), string(serviceid.ConcurrentEntry)), controllerid.GetSequenceNumbers, r)
+	service.Entry(traceId, controllerid.GetSequenceNumbers, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -47,6 +45,6 @@ func RoundCheck(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.RoundCheck), string(serviceid.ConcurrentEntry)), controllerid.RoundCheck, r)
+	service.Entry(traceId, controllerid.RoundCheck, r)
 	writeHttpResponse(w, traceId)
 }

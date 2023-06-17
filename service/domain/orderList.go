@@ -4,9 +4,6 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	"TestAPI/enum/functionid"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/tracer"
 	"fmt"
@@ -14,60 +11,66 @@ import (
 )
 
 type OrderListService struct {
-	Request  entity.OrderListRequest
-	TraceMap string
+	Request entity.OrderListRequest
 }
 
 // databinding&validate
-func ParseOrderListRequest(traceMap string, r *http.Request) (request entity.OrderListRequest, err error) {
+func ParseOrderListRequest(traceId string, r *http.Request) (request entity.OrderListRequest) {
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
+	//read query string
 	query := r.URL.Query()
 	request.Token = query.Get("connectToken")
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	//validate request
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+	return request
 }
 
 func (service *OrderListService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
+	//parse game toekn
+	_, _, gameId := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true)
 	//wrong gameId
-	_, _, gameId := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
 	if gameId == 0 {
 		return nil
 	}
 
+	//get game lang
+	lang := getGameLanguage(&service.Request.BaseSelfDefine, gameId)
 	//no lang-Code
-	lang := getGameLanguage(es.AddTraceMap(service.TraceMap, string(functionid.GetGameLanguage)), &service.Request.BaseSelfDefine, gameId)
 	if lang == "" {
 		return nil
 	}
 
 	service.Request.ErrorCode = string(errorcode.Success)
 	return entity.OrderListResponse{
-		Url: getReportUrl(es.AddTraceMap(service.TraceMap, string(functionid.GetReportUrl)), lang, service.Request.Token),
+		Url: getReportUrl(service.Request.TraceID, lang, service.Request.Token),
 	}
 }
 
 // 用gameId取出遊戲的語系
-func getGameLanguage(traceMap string, selfDefine *entity.BaseSelfDefine, gameId int) string {
-	lang, err := database.GetGameLanguage(es.AddTraceMap(traceMap, sqlid.GetGameLanguage.String()), gameId)
-	if err != nil {
+func getGameLanguage(selfDefine *entity.BaseSelfDefine, gameId int) string {
+	lang := database.GetGameLanguage(selfDefine.TraceID, gameId)
+	//get game language error
+	if lang == "" {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return ""
 	}
+
 	return lang
 }
 

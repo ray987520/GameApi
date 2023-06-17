@@ -4,8 +4,11 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	"TestAPI/enum/functionid"
+	"TestAPI/enum/innererror"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
+	"TestAPI/external/service/zaplog"
 	"net/http"
 )
 
@@ -49,10 +52,13 @@ func (service *DistributionService) Exec() (data interface{}) {
 		return nil
 	}
 
+	//取派彩的錢包
 	account, wallet, isOK := getDistributionWallet(&service.Request.BaseSelfDefine, service.Request.Distribution)
 	if !isOK {
 		return nil
 	}
+
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetDistributionWallet, innererror.TraceNode, service.Request.TraceID, "account", account, "wallet", wallet)
 
 	//資料沒派彩過才派彩
 	hasRecord := hasUnpayActivityDistribution(&service.Request.BaseSelfDefine, service.Request.ActivityIV, service.Request.Rank)
@@ -60,12 +66,15 @@ func (service *DistributionService) Exec() (data interface{}) {
 		return nil
 	}
 
+	//派彩到錢包
 	isOK = activityDistribution(&service.Request.BaseSelfDefine, service.Request.Distribution, wallet.WalletID)
 	if !isOK {
 		return nil
 	}
 
+	//清除錢包cache以同步
 	database.ClearPlayerWalletCache(service.Request.TraceID, wallet.Currency, account)
+
 	service.Request.ErrorCode = string(errorcode.Success)
 	return nil
 }
@@ -85,18 +94,22 @@ func getDistributionWallet(selfDefine *entity.BaseSelfDefine, data entity.Distri
 // 是否有未派彩紀錄
 func hasUnpayActivityDistribution(selfDefine *entity.BaseSelfDefine, activityIV string, rank int) (hasRecord bool) {
 	hasRecord = database.IsExistsUnpayActivityDistribution(selfDefine.TraceID, activityIV, rank)
+	//沒需派彩資料
 	if !hasRecord {
 		selfDefine.ErrorCode = string(errorcode.ActivityPayoutDone)
 	}
+
 	return hasRecord
 }
 
 // 活動派彩
 func activityDistribution(selfDefine *entity.BaseSelfDefine, data entity.Distribution, walletID string) (isOK bool) {
 	isOK = database.ActivityDistribution(selfDefine.TraceID, data, walletID, es.LocalNow(8))
+	//派彩失敗
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
+
 	return isOK
 }
 

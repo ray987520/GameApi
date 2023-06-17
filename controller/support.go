@@ -2,8 +2,6 @@ package controller
 
 import (
 	"TestAPI/enum/controllerid"
-	"TestAPI/enum/serviceid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
@@ -18,6 +16,6 @@ func CurrencyList(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.CurrencyList), string(serviceid.ConcurrentEntry)), controllerid.CurrencyList, r)
+	service.Entry(traceId, controllerid.CurrencyList, r)
 	writeHttpResponse(w, traceId)
 }

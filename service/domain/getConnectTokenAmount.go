@@ -4,54 +4,61 @@ import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/functionid"
-	es "TestAPI/external/service"
+	"TestAPI/enum/innererror"
 	"TestAPI/external/service/tracer"
+	"TestAPI/external/service/zaplog"
 	"net/http"
 )
 
 type GetConnectTokenAmountService struct {
-	Request  entity.GetConnectTokenAmountRequest
-	TraceMap string
+	Request entity.GetConnectTokenAmountRequest
 }
 
 // databinding&validate
-func ParseGetConnectTokenAmountRequest(traceMap string, r *http.Request) (request entity.GetConnectTokenAmountRequest, err error) {
+func ParseGetConnectTokenAmountRequest(traceId string, r *http.Request) (request entity.GetConnectTokenAmountRequest) {
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
+	//read querystring
 	query := r.URL.Query()
 	request.Token = query.Get("connectToken")
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	//validate request
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, err
+	return request
 }
 
 func (service *GetConnectTokenAmountService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
+	if isConnectTokenError(&service.Request.BaseSelfDefine, service.Request.Token) {
 		return nil
 	}
 
-	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
+	//parse game token
+	account, currency, _ := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
 		return nil
 	}
 
-	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
+	//get wallet
+	wallet, isOK := getPlayerWallet(&service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
 		return nil
 	}
+
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
 
 	//don't show WalletID
 	wallet.WalletID = ""

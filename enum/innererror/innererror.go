@@ -5,6 +5,8 @@ const (
 	FunctionNode  = "function"  //用於zaplog,function節點名稱
 	ErrorInfoNode = "error"     //用於zaplog,error節點名稱
 	ErrorTypeNode = "errorType" //用於zaplog,errorType節點名稱
+	DataNode      = "data"      //用於zaplog,data節點名稱
+	InfoNode      = "info"      //用於zaplog,info節點名稱
 )
 
 const (

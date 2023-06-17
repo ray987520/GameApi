@@ -2,8 +2,6 @@ package controller
 
 import (
 	"TestAPI/enum/controllerid"
-	"TestAPI/enum/serviceid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
@@ -19,6 +17,6 @@ func OrderList(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.OrderList), string(serviceid.ConcurrentEntry)), controllerid.OrderList, r)
+	service.Entry(traceId, controllerid.OrderList, r)
 	writeHttpResponse(w, traceId)
 }

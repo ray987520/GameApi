@@ -2,8 +2,6 @@ package controller
 
 import (
 	"TestAPI/enum/controllerid"
-	"TestAPI/enum/serviceid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
@@ -19,7 +17,7 @@ func GameResult(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GameResult), string(serviceid.ConcurrentEntry)), controllerid.GameResult, r)
+	service.Entry(traceId, controllerid.GameResult, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -33,7 +31,7 @@ func FinishGameResult(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.FinishGameResult), string(serviceid.ConcurrentEntry)), controllerid.FinishGameResult, r)
+	service.Entry(traceId, controllerid.FinishGameResult, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -47,6 +45,6 @@ func AddGameLog(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.AddGameLog), string(serviceid.ConcurrentEntry)), controllerid.AddGameLog, r)
+	service.Entry(traceId, controllerid.AddGameLog, r)
 	writeHttpResponse(w, traceId)
 }

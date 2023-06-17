@@ -44,7 +44,6 @@ func ParseCreateGuestConnectTokenRequest(traceId string, r *http.Request) (reque
 }
 
 func (service *CreateGuestConnectTokenService) Exec() interface{} {
-	//catch panic
 	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {

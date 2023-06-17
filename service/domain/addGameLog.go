@@ -4,7 +4,10 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	"TestAPI/enum/functionid"
+	"TestAPI/enum/innererror"
 	"TestAPI/external/service/tracer"
+	"TestAPI/external/service/zaplog"
 	"net/http"
 
 	"github.com/shopspring/decimal"
@@ -36,12 +39,14 @@ func ParseAddGameLogRequest(traceId string, r *http.Request) (request entity.Add
 		return request
 	}
 
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
+	//validate request
 	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
 		return request
@@ -73,6 +78,8 @@ func (service *AddGameLogService) Exec() (data interface{}) {
 		return nil
 	}
 
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.Currency2ExchangeRate, innererror.TraceNode, service.Request.TraceID, "exchangeRate", exchangeRate)
+
 	//insert gamelog
 	isOK := addGameLog2Db(&service.Request, exchangeRate)
 	if !isOK {
@@ -97,7 +104,6 @@ func currency2ExchangeRate(selfDefine *entity.BaseSelfDefine, currency string) d
 	exchangeRate := database.GetCurrencyExchangeRate(selfDefine.TraceID, currency)
 	if exchangeRate.Equal(decimal.Zero) {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
-		return decimal.Zero
 	}
 	return exchangeRate
 }

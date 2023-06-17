@@ -4,51 +4,52 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	"TestAPI/enum/functionid"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
 type SettlementService struct {
-	Request  entity.SettlementRequest
-	TraceMap string
+	Request entity.SettlementRequest
 }
 
 // databinding&validate
-func ParseSettlementRequest(traceMap string, r *http.Request) (request entity.SettlementRequest, err error) {
-	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
-	if err != nil {
-		return request, err
+func ParseSettlementRequest(traceId string, r *http.Request) (request entity.SettlementRequest) {
+	body, isOK := readHttpRequestBody(traceId, r, &request)
+	//read body error
+	if !isOK {
+		return request
 	}
 
-	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
-	if err != nil {
-		return request, err
+	isOK = parseJsonBody(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
+		return request
 	}
 
+	//read request
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	//validate request
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+	return request
 }
 
 func (service *SettlementService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	isOK := addUnpayActivityRank(es.AddTraceMap(service.TraceMap, string(functionid.AddUnpayActivityRank)), &service.Request.BaseSelfDefine, service.Request.Settlement)
+	//add活動待派彩資料
+	isOK := addUnpayActivityRank(&service.Request.BaseSelfDefine, service.Request.Settlement)
 	if !isOK {
 		return nil
 	}
@@ -58,11 +59,13 @@ func (service *SettlementService) Exec() (data interface{}) {
 }
 
 // add未派彩紀錄
-func addUnpayActivityRank(traceMap string, selfDefine *entity.BaseSelfDefine, data entity.Settlement) (isOK bool) {
-	isOK = database.AddActivityRank(es.AddTraceMap(traceMap, sqlid.AddActivityRank.String()), data)
+func addUnpayActivityRank(selfDefine *entity.BaseSelfDefine, data entity.Settlement) (isOK bool) {
+	isOK = database.AddActivityRank(selfDefine.TraceID, data)
+	//add record error
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
+
 	return isOK
 }
 

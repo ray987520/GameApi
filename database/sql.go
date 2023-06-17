@@ -26,6 +26,7 @@ const (
 	currencyError     = "unknow currency:%s"                 //未知幣別
 	emptyErrorMessage = "get no error message"               //取出空錯誤訊息
 	dataError         = "data is not match expected"         //not expected data
+	dbInfo            = "database info"                      //記錄trace用資料
 )
 
 var sqlDb iface.ISqlService
@@ -44,6 +45,9 @@ func GetExternalErrorMessage(traceId string, code string) (errorMessage string) 
 	AND codeType=1
 	AND langCode='en-US'`
 	params := []interface{}{code}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Select(traceId, &errorMessage, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -52,13 +56,13 @@ func GetExternalErrorMessage(traceId string, code string) (errorMessage string) 
 
 	//非預期輸出筆數
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return unknowError
 	}
 
 	//取出空錯誤訊息
 	if errorMessage == "" {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.TraceNode, traceId, innererror.ErrorInfoNode, emptyErrorMessage, "sql", sql, "params", params, "errorMessage", errorMessage)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetExternalErrorMessage, innererror.TraceNode, traceId, innererror.ErrorInfoNode, emptyErrorMessage, "errorMessage", errorMessage)
 		return unknowError
 	}
 	return errorMessage
@@ -70,6 +74,9 @@ func GetCurrencyExchangeRate(traceId string, currency string) (exchangeRate deci
 			FROM [Currency](nolock)
 			WHERE [currency]=?`
 	params := []interface{}{currency}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Select(traceId, &exchangeRate, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -78,16 +85,17 @@ func GetCurrencyExchangeRate(traceId string, currency string) (exchangeRate deci
 
 	//非預期輸出筆數
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return decimal.Zero
 	}
 
 	//異常匯率
 	if exchangeRate.LessThanOrEqual(decimal.Zero) {
 		err := fmt.Errorf(currencyError, currency)
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "exchangeRate", exchangeRate, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyExchangeRate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "exchangeRate", exchangeRate)
 		return decimal.Zero
 	}
+
 	return exchangeRate
 }
 
@@ -117,7 +125,11 @@ func GetPlayerInfo(traceId string, account, currency string, gameId int) (data e
 					ON acct.account=mc.account
 				WHERE acct.account=?
 					AND mc.currency=?`
+
 	params := []interface{}{gameId, account, currency}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Select(traceId, &data, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -126,7 +138,7 @@ func GetPlayerInfo(traceId string, account, currency string, gameId int) (data e
 
 	//非預期輸出筆數
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerInfo, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return entity.AuthConnectTokenResponse{}
 	}
 
@@ -154,6 +166,9 @@ func AddConnectToken(traceId string, token, account, currency, ip string, gameId
 			,[status])
 			VALUES (?,?,?,?,?,?,?,?)`
 	params := []interface{}{token, gameId, currency, account, now.Format(es.DbTimeFormat), ip, int(tokenlocation.Default), int(tokenstatus.Actived)}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddConnectToken, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Create(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -162,7 +177,7 @@ func AddConnectToken(traceId string, token, account, currency, ip string, gameId
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -175,6 +190,9 @@ func UpdateTokenLocation(traceId string, token string, location int) bool {
 			SET [location] = ?
  			WHERE [connectToken]=?`
 	params := []interface{}{location, token}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.UpdateTokenLocation, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Update(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -183,7 +201,7 @@ func UpdateTokenLocation(traceId string, token string, location int) bool {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.UpdateTokenLocation, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.UpdateTokenLocation, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -202,7 +220,11 @@ func GetTokenAlive(traceId string, token string) (alive bool) {
 		FROM [GameToken](nolock)
 		WHERE [connectToken]=?
 		AND status=?`
-	rowCount := sqlDb.Select(traceId, &alive, sql, token, int(tokenstatus.Actived))
+	params := []interface{}{token, int(tokenstatus.Actived)}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetTokenAlive, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &alive, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return false
@@ -210,7 +232,7 @@ func GetTokenAlive(traceId string, token string) (alive bool) {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetTokenAlive, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "token", token, "status", int(tokenstatus.Actived), "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetTokenAlive, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -229,6 +251,9 @@ func DeleteToken(traceId string, token string, deleteTime time.Time) bool {
 				,deleteTime=?
  			WHERE [connectToken]=?`
 	params := []interface{}{int(tokenstatus.Deleted), deleteTime.Format(es.DbTimeFormat), token}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.DeleteToken, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Update(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -237,7 +262,7 @@ func DeleteToken(traceId string, token string, deleteTime time.Time) bool {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.DeleteToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.DeleteToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -248,7 +273,7 @@ func DeleteToken(traceId string, token string, deleteTime time.Time) bool {
 }
 
 // 添加GameResult|RollHistory並更新錢包
-func AddGameResultReCountWallet(tracId string, data entity.GameResult, wallet entity.PlayerWallet, now time.Time) bool {
+func AddGameResultReCountWallet(traceId string, data entity.GameResult, wallet entity.PlayerWallet, now time.Time) bool {
 	sql := []string{`INSERT INTO [dbo].[GameResult]
 						([connectToken]
 						,[gameSequenceNumber]
@@ -272,22 +297,20 @@ func AddGameResultReCountWallet(tracId string, data entity.GameResult, wallet en
 					SET amount=amount+?
 					WHERE id=?`}
 	params := [][]interface{}{}
-	betTime, isOK := es.ParseTime(tracId, es.ApiTimeFormat, data.BetTime)
+	betTime, isOK := es.ParseTime(traceId, es.ApiTimeFormat, data.BetTime)
 	//parse time error
 	if !isOK {
 		return false
 	}
 
-	serverTime, isOK := es.ParseTime(tracId, es.ApiTimeFormat, data.ServerTime)
+	serverTime, isOK := es.ParseTime(traceId, es.ApiTimeFormat, data.ServerTime)
 	//parse time error
 	if !isOK {
 		return false
 	}
 
-	params = append(params, []interface{}{data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout,
-		data.CurrencyKindContribution, data.CurrencyKindJackPot, data.SequenceID, data.GameRoom, betTime.Format(es.DbTimeFormat), serverTime.Format(es.DbTimeFormat),
-		data.FreeGame, data.TurnTimes, data.BetMode})
-	walletId, isOK := str.Atoi(tracId, wallet.WalletID)
+	params = append(params, []interface{}{data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout, data.CurrencyKindContribution, data.CurrencyKindJackPot, data.SequenceID, data.GameRoom, betTime.Format(es.DbTimeFormat), serverTime.Format(es.DbTimeFormat), data.FreeGame, data.TurnTimes, data.BetMode})
+	walletId, isOK := str.Atoi(traceId, wallet.WalletID)
 	//convert error
 	if !isOK {
 		return false
@@ -295,7 +318,10 @@ func AddGameResultReCountWallet(tracId string, data entity.GameResult, wallet en
 
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.CurrencyKindPayout.Sub(data.CurrencyKindBet), walletId})
-	rowCount := sqlDb.Transaction(tracId, sql, params...)
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Transaction(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return false
@@ -303,7 +329,7 @@ func AddGameResultReCountWallet(tracId string, data entity.GameResult, wallet en
 
 	//not expected rowCount
 	if rowCount != 3 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.TraceNode, tracId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResultReCountWallet, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -341,9 +367,10 @@ func AddGameResult(traceId string, data entity.GameResult) bool {
 		return false
 	}
 
-	params = append(params, data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout,
-		data.CurrencyKindContribution, data.CurrencyKindJackPot, data.SequenceID, data.GameRoom, betTime.Format(es.DbTimeFormat), serverTime.Format(es.DbTimeFormat),
-		data.FreeGame, data.TurnTimes, data.BetMode)
+	params = append(params, data.Token, data.GameSequenceNumber, data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout, data.CurrencyKindContribution, data.CurrencyKindJackPot, data.SequenceID, data.GameRoom, betTime.Format(es.DbTimeFormat), serverTime.Format(es.DbTimeFormat), data.FreeGame, data.TurnTimes, data.BetMode)
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddGameResult, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Create(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -352,7 +379,7 @@ func AddGameResult(traceId string, data entity.GameResult) bool {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResult, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameResult, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -361,6 +388,7 @@ func AddGameResult(traceId string, data entity.GameResult) bool {
 
 // 補單token是否存活
 func GetFinishGameResultTokenAlive(traceId string, token string) (alive bool) {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetFinishGameResultTokenAlive, innererror.TraceNode, traceId, "token", token)
 	//目前設計補單用token只會存在於cache,且有特定key format
 	return GetFinishGameResultTokenCache(traceId, token) == tokenDefault
 }
@@ -379,7 +407,11 @@ func GetPlayerWallet(traceId string, account, currency string) (data entity.Play
 				FROM [ManCoin]
 				WHERE account=?
 				AND currency=?`
-	rowCount := sqlDb.Select(traceId, &data, sql, account, currency)
+	params := []interface{}{account, currency}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &data, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return entity.PlayerWallet{}, false
@@ -387,7 +419,7 @@ func GetPlayerWallet(traceId string, account, currency string) (data entity.Play
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "account", account, "currency", currency, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetPlayerWallet, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return entity.PlayerWallet{}, false
 	}
 
@@ -409,7 +441,11 @@ func IsExistsTokenGameResult(traceId string, token, gameSeqNo string) (data bool
 			FROM [GameResult](nolock)
 			WHERE connectToken=?
 			AND gameSequenceNumber=?`
-	rowCount := sqlDb.Select(traceId, &data, sql, token, gameSeqNo)
+	params := []interface{}{token, gameSeqNo}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.IsExistsTokenGameResult, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &data, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return false
@@ -417,7 +453,7 @@ func IsExistsTokenGameResult(traceId string, token, gameSeqNo string) (data bool
 
 	//not expected rowCount
 	if rowCount == 0 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsTokenGameResult, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "token", token, "gameSeqNo", gameSeqNo, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsTokenGameResult, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -431,7 +467,11 @@ func IsExistsRollInHistory(traceId string, token, gameSeqNo string) (data bool) 
 			FROM RollHistory(nolock)
 			WHERE connectToken=?
 			AND transId=?`
-	rowCount := sqlDb.Select(traceId, &data, sql, token, rollInId)
+	params := []interface{}{token, rollInId}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.IsExistsRollInHistory, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &data, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return false
@@ -475,6 +515,9 @@ func AddRollInHistory(traceId string, data entity.GameResult, wallet entity.Play
 
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.CurrencyKindPayout, walletId})
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddRollInHistory, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Transaction(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -483,7 +526,7 @@ func AddRollInHistory(traceId string, data entity.GameResult, wallet entity.Play
 
 	//not expected rowCount
 	if rowCount != 3 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollInHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollInHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -518,6 +561,9 @@ func AddGameLog(traceId string, data entity.GameLog, exchangeRate decimal.Decima
 	}
 
 	params = append(params, data.Token, data.GameSequenceNumber, data.SequenceID, data.GameLog, data.CurrencyKindBet.Mul(exchangeRate), data.CurrencyKindWinLose.Mul(exchangeRate), data.CurrencyKindPayout.Mul(exchangeRate), data.CurrencyKindContribution.Mul(exchangeRate), data.CurrencyKindJackPot.Mul(exchangeRate), data.CurrencyKindBet, data.CurrencyKindWinLose, data.CurrencyKindPayout, data.CurrencyKindContribution, data.CurrencyKindJackPot, betTime.Format(es.DbTimeFormat))
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddGameLog, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Create(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -526,7 +572,7 @@ func AddGameLog(traceId string, data entity.GameLog, exchangeRate decimal.Decima
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameLog, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddGameLog, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -538,14 +584,18 @@ func GetGameLanguage(traceId string, gameId int) (data string) {
 	sql := `SELECT lang
 			FROM Game(nolock)
 			WHERE gameId=?`
-	rowCount := sqlDb.Select(traceId, &data, sql, gameId)
+	params := []interface{}{gameId}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetGameLanguage, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &data, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return ""
 	}
 
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetGameLanguage, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "gameId", gameId, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetGameLanguage, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return ""
 	}
 	return data
@@ -569,6 +619,7 @@ func AddRollOutHistory(traceId string, data entity.RollHistory, wallet entity.Pl
 		SET amount=amount+?
 		WHERE id=?`}
 	params := [][]interface{}{}
+
 	rollTime, isOK := es.ParseTime(traceId, es.ApiTimeFormat, data.RollTime)
 	//parse time error
 	if !isOK {
@@ -584,6 +635,9 @@ func AddRollOutHistory(traceId string, data entity.RollHistory, wallet entity.Pl
 
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.Amount.Neg(), walletId})
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddRollOutHistory, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Transaction(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -592,7 +646,7 @@ func AddRollOutHistory(traceId string, data entity.RollHistory, wallet entity.Pl
 
 	//not expected rowCount
 	if rowCount != 3 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollOutHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddRollOutHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -613,6 +667,9 @@ func AddActivityRank(traceId string, data entity.Settlement) bool {
 				(?,?,?,?,?,?,?)`
 	params := []interface{}{}
 	params = append(params, data.ActivityIV, data.Rank, data.MemberID, data.GameSequenceNumber, data.Currency, data.Prize, int(rankstatus.UnPay))
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.AddActivityRank, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Create(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -621,7 +678,7 @@ func AddActivityRank(traceId string, data entity.Settlement) bool {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddActivityRank, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.AddActivityRank, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -635,8 +692,10 @@ func IsExistsUnpayActivityDistribution(traceId string, activityIV string, rank i
 			WHERE [activityIV]=?
 			AND [rank]=?
 			AND status=?`
-	params := []interface{}{}
-	params = append(params, activityIV, rank, int(rankstatus.UnPay))
+	params := []interface{}{activityIV, rank, int(rankstatus.UnPay)}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.IsExistsUnpayActivityDistribution, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Select(traceId, &hasData, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -645,7 +704,7 @@ func IsExistsUnpayActivityDistribution(traceId string, activityIV string, rank i
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsUnpayActivityDistribution, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsUnpayActivityDistribution, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -675,6 +734,9 @@ func ActivityDistribution(traceId string, data entity.Distribution, walletID str
 
 	params = append(params, []interface{}{walletId})
 	params = append(params, []interface{}{data.PrizePayout, walletId})
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.ActivityDistribution, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Transaction(traceId, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -683,7 +745,7 @@ func ActivityDistribution(traceId string, data entity.Distribution, walletID str
 
 	//not expected rowCount
 	if rowCount != 3 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.ActivityDistribution, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.ActivityDistribution, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false
 	}
 
@@ -702,7 +764,11 @@ func GetDistributionWallet(traceId string, data entity.Distribution) (account st
 			ON A.acctId=B.memberId
 		WHERE B.[activityIV]=?
 		AND B.[rank]=?`
-	rowCount := sqlDb.Select(traceId, &temp, sql, data.ActivityIV, data.Rank)
+	params := []interface{}{data.ActivityIV, data.Rank}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &temp, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return "", entity.PlayerWallet{}
@@ -710,7 +776,7 @@ func GetDistributionWallet(traceId string, data entity.Distribution) (account st
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "ActivityIV", data.ActivityIV, "Rank", data.Rank, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetDistributionWallet, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return "", entity.PlayerWallet{}
 	}
 
@@ -729,6 +795,9 @@ func GetCurrencyList(traceId string) (list []entity.CurrencyListResponse) {
 				,[currency]
 				,[exchangeRate]
 			FROM [Currency]`
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.TraceNode, traceId, "sql", sql)
+
 	rowCount := sqlDb.Select(traceId, &list, sql)
 	//底層錯誤
 	if rowCount == -1 {
@@ -737,7 +806,7 @@ func GetCurrencyList(traceId string) (list []entity.CurrencyListResponse) {
 
 	//not expected rowCount
 	if rowCount == 0 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetCurrencyList, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return nil
 	}
 	return list
@@ -766,8 +835,10 @@ func GetRoundCheckList(traceId string, fromDate, toDate string) (list []entity.R
 			WHERE RO.rollTime BETWEEN ? AND ? 
 			AND RO.rollType=?
 			AND (GR.id IS NULL OR RI.id IS NULL)`
-	params := []interface{}{}
-	params = append(params, rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut))
+	params := []interface{}{rollTimeStart.Format(es.DbTimeFormat), rollTimeEnd.Format(es.DbTimeFormat), int(rolltype.RollOut)}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetRoundCheckList, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Select(traceId, &list, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -790,8 +861,10 @@ func IsExistsRolloutHistory(traceId string, gameSequenceNumber string) (hasData 
 			FROM RollHistory(nolock) as RO
 			WHERE RO.transId=? 
 			AND RO.rollType=?`
-	params := []interface{}{}
-	params = append(params, rollOutId, int(rolltype.RollOut))
+	params := []interface{}{rollOutId, int(rolltype.RollOut)}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
 	rowCount := sqlDb.Select(traceId, &rollOutAmount, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
@@ -800,13 +873,13 @@ func IsExistsRolloutHistory(traceId string, gameSequenceNumber string) (hasData 
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "params", params, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return false, decimal.Zero
 	}
 
 	//not expected data
 	if rollOutAmount.LessThanOrEqual(decimal.Zero) {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, dataError, "sql", sql, "params", params, "rollOutAmount", rollOutAmount.String())
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.IsExistsRolloutHistory, innererror.TraceNode, traceId, innererror.ErrorInfoNode, dataError, "rollOutAmount", rollOutAmount.String())
 		return false, decimal.Zero
 	}
 
@@ -822,7 +895,11 @@ func GetAccountBetCount(traceId string, account string) (count int) {
 			JOIN GameResult as gr (NOLOCK)
 				ON gt.connectToken=gr.connectToken
 			WHERE acct.account=?`
-	rowCount := sqlDb.Select(traceId, &count, sql, account)
+	params := []interface{}{account}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetAccountBetCount, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &count, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return -1
@@ -830,7 +907,7 @@ func GetAccountBetCount(traceId string, account string) (count int) {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountBetCount, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "account", account, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountBetCount, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return -1
 	}
 
@@ -849,7 +926,11 @@ func GetAccountRtp(traceId string, account string) (rtp int) {
 			JOIN Platform as pf(NOLOCK)
 			ON ch.pfCode=pf.pfCode
 			WHERE acct.account=?`
-	rowCount := sqlDb.Select(traceId, &rtp, sql, account)
+	params := []interface{}{account}
+
+	zaplog.Infow(dbInfo, innererror.FunctionNode, sqlid.GetAccountRtp, innererror.TraceNode, traceId, "sql", sql, "params", params)
+
+	rowCount := sqlDb.Select(traceId, &rtp, sql, params...)
 	//底層錯誤
 	if rowCount == -1 {
 		return -1
@@ -857,7 +938,7 @@ func GetAccountRtp(traceId string, account string) (rtp int) {
 
 	//not expected rowCount
 	if rowCount != 1 {
-		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountRtp, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "sql", sql, "account", account, "rowCount", rowCount)
+		zaplog.Errorw(innererror.DBSqlError, innererror.FunctionNode, sqlid.GetAccountRtp, innererror.TraceNode, traceId, innererror.ErrorInfoNode, rowCountError, "rowCount", rowCount)
 		return -1
 	}
 

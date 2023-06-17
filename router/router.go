@@ -171,6 +171,7 @@ func ErrorHandleMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		next.ServeHTTP(w, req)
 		traceID := req.Header.Get(traceHeader)
+		//log response header
 		zaplog.Infow(logResponse, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, "responseHeaders", w.Header())
 		//在response之後檢查
 		errorCode := req.Header.Get(errorCodeHeader)

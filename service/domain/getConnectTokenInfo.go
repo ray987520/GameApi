@@ -4,50 +4,51 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	"TestAPI/enum/functionid"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
 type GetConnectTokenInfoService struct {
-	Request  entity.GetConnectTokenInfoRequest
-	TraceMap string
+	Request entity.GetConnectTokenInfoRequest
 }
 
 // databinding&validate
-func ParseGetConnectTokenInfoRequest(traceMap string, r *http.Request) (request entity.GetConnectTokenInfoRequest, err error) {
+func ParseGetConnectTokenInfoRequest(traceId string, r *http.Request) (request entity.GetConnectTokenInfoRequest) {
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
+	//read query string
 	query := r.URL.Query()
 	request.Token = query.Get("connectToken")
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) {
+	//validate request
+	if !IsValid(traceId, request) {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+	return request
 }
 
 func (service *GetConnectTokenInfoService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
+	if isConnectTokenError(&service.Request.BaseSelfDefine, service.Request.Token) {
 		return nil
 	}
 
-	account, currency, gameId := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
+	//parse game token
+	account, currency, gameId := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true)
 
-	data = getPlayerInfoCache(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerInfoCache)), &service.Request.BaseSelfDefine, account, currency, gameId)
+	//get playerinfo
+	data = getPlayerInfoCache(&service.Request.BaseSelfDefine, account, currency, gameId)
 	if data == nil {
 		return nil
 	}
@@ -57,9 +58,10 @@ func (service *GetConnectTokenInfoService) Exec() (data interface{}) {
 }
 
 // 取出緩存PlayerInfo
-func getPlayerInfoCache(traceMap string, selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) interface{} {
-	playerInfo, err := database.GetPlayerInfo(es.AddTraceMap(traceMap, sqlid.GetPlayerInfo.String()), account, currency, gameId)
-	if err != nil {
+func getPlayerInfoCache(selfDefine *entity.BaseSelfDefine, account, currency string, gameId int) interface{} {
+	playerInfo := database.GetPlayerInfo(selfDefine.TraceID, account, currency, gameId)
+	//get playerinfo error
+	if playerInfo.GameAccount == "" {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return nil
 	}

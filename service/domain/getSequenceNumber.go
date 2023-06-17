@@ -4,36 +4,39 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
-	"TestAPI/enum/functionid"
-	"TestAPI/enum/redisid"
-	es "TestAPI/external/service"
+	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/tracer"
 	"net/http"
 )
 
 type GetSequenceNumberService struct {
-	Request  entity.GetSequenceNumberRequest
-	TraceMap string
+	Request entity.GetSequenceNumberRequest
 }
 
+var (
+	gameSequenceNumberPrefix = mconfig.GetString("api.game.gameSequenceNumberPrefix")
+)
+
 // databinding&validate
-func ParseGetSequenceNumberRequest(traceMap string, r *http.Request) (request entity.GetSequenceNumberRequest, err error) {
+func ParseGetSequenceNumberRequest(traceId string, r *http.Request) (request entity.GetSequenceNumberRequest) {
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
-	return
+	return request
 }
 
 func (service *GetSequenceNumberService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	seqNo := getGameSequenceNumber(es.AddTraceMap(service.TraceMap, string(functionid.GetGameSequenceNumber)), &service.Request.BaseSelfDefine)
+	//取將號
+	seqNo := getGameSequenceNumber(&service.Request.BaseSelfDefine)
 	if seqNo == "" {
 		return nil
 	}
@@ -45,12 +48,14 @@ func (service *GetSequenceNumberService) Exec() (data interface{}) {
 }
 
 // 取單一將號,暫時prefix給空字串,如果redis數字爆掉可以加上新prefix避免重覆
-func getGameSequenceNumber(traceMap string, selfDefine *entity.BaseSelfDefine) string {
-	seqNo := database.GetGameSequenceNumber(es.AddTraceMap(traceMap, redisid.GetGameSequenceNumber.String()), "")
+func getGameSequenceNumber(selfDefine *entity.BaseSelfDefine) string {
+	seqNo := database.GetGameSequenceNumber(selfDefine.TraceID, gameSequenceNumberPrefix)
+	//get game sequence number error
 	if seqNo == "" {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 		return ""
 	}
+
 	return seqNo
 }
 

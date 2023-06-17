@@ -28,4 +28,5 @@ const (
 	ParseTime             EsId = "es_ParseTime"
 	JsonMarshal           EsId = "es_JsonMarshal"
 	JsonUnMarshal         EsId = "es_JsonUnMarshal"
+	PanicTrace            EsId = "es_PanicTrace"
 )

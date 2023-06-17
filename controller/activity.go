@@ -2,8 +2,6 @@ package controller
 
 import (
 	"TestAPI/enum/controllerid"
-	"TestAPI/enum/serviceid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/tracer"
 	"TestAPI/service"
 	"net/http"
@@ -19,7 +17,7 @@ func Settlement(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.Settlement), string(serviceid.ConcurrentEntry)), controllerid.Settlement, r)
+	service.Entry(traceId, controllerid.Settlement, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -33,6 +31,6 @@ func Distribution(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.Distribution), string(serviceid.ConcurrentEntry)), controllerid.Distribution, r)
+	service.Entry(traceId, controllerid.Distribution, r)
 	writeHttpResponse(w, traceId)
 }

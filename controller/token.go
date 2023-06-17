@@ -3,7 +3,6 @@ package controller
 import (
 	"TestAPI/entity"
 	"TestAPI/enum/controllerid"
-	"TestAPI/enum/serviceid"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/tracer"
@@ -34,7 +33,7 @@ func CreateGuestConnectToken(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.CreateGuestConnectToken), string(serviceid.ConcurrentEntry)), controllerid.CreateGuestConnectToken, r)
+	service.Entry(traceId, controllerid.CreateGuestConnectToken, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -43,23 +42,22 @@ func getTraceIdFromRequest(r *http.Request) (traceID string) {
 }
 
 // 在公用MAP註冊一個traceid(uuid)的唯一response channel
-func initResponseChannel(traceID string) {
-	service.ResponseMap.Store(traceID, make(chan entity.BaseHttpResponse))
+func initResponseChannel(traceId string) {
+	service.ResponseMap.Store(traceId, make(chan entity.BaseHttpResponse))
 	//service.ResponseMap[traceID] = make(chan entity.BaseHttpResponse)
 }
 
 // response回寫到channel公用map
-func writeHttpResponse(w http.ResponseWriter, traceID string) {
+func writeHttpResponse(w http.ResponseWriter, traceId string) {
 	//設定decimal序列化處理時不要雙引號
 	decimal.MarshalJSONWithoutQuotes = true
 
 	var (
 		data []byte
-		err  error
 	)
 
 	//sync.Map不能用舊的map[key]方式取值賦值,改用sync.Map.Load取值
-	value, isOK := service.ResponseMap.Load(traceID)
+	value, isOK := service.ResponseMap.Load(traceId)
 	if !isOK {
 		//map找不到traceID的情況報錯
 		data = []byte(loadResponseChannelError)
@@ -68,13 +66,14 @@ func writeHttpResponse(w http.ResponseWriter, traceID string) {
 		responseChannel := value.(chan entity.BaseHttpResponse)
 		response := <-responseChannel
 		close(responseChannel)
-		service.ResponseMap.Delete(traceID)
+		service.ResponseMap.Delete(traceId)
 		//response := <-service.ResponseMap[traceID]
 		//close(service.ResponseMap[traceID])
 		//delete(service.ResponseMap, traceID)
 		//序列化response
-		data, err = es.JsonMarshal(traceID, response)
-		if err != nil {
+		data = es.JsonMarshal(traceId, response)
+		//json serialize error
+		if data == nil {
 			data = []byte(responseFormatError)
 		}
 	}
@@ -91,7 +90,7 @@ func AuthConnectToken(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.AuthConnectToken), string(serviceid.ConcurrentEntry)), controllerid.AuthConnectToken, r)
+	service.Entry(traceId, controllerid.AuthConnectToken, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -105,7 +104,7 @@ func UpdateTokenLocation(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.UpdateTokenLocation), string(serviceid.ConcurrentEntry)), controllerid.UpdateTokenLocation, r)
+	service.Entry(traceId, controllerid.UpdateTokenLocation, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -119,7 +118,7 @@ func GetConnectTokenInfo(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GetConnectTokenInfo), string(serviceid.ConcurrentEntry)), controllerid.GetConnectTokenInfo, r)
+	service.Entry(traceId, controllerid.GetConnectTokenInfo, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -133,7 +132,7 @@ func GetConnectTokenAmount(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.GetConnectTokenAmount), string(serviceid.ConcurrentEntry)), controllerid.GetConnectTokenAmount, r)
+	service.Entry(traceId, controllerid.GetConnectTokenAmount, r)
 	writeHttpResponse(w, traceId)
 }
 
@@ -147,6 +146,6 @@ func DelConnectToken(w http.ResponseWriter, r *http.Request) {
 	traceId := getTraceIdFromRequest(r)
 	defer tracer.PanicTrace(traceId)
 	initResponseChannel(traceId)
-	service.Entry(es.AddTraceMap(traceId+"_"+string(controllerid.DelConnectToken), string(serviceid.ConcurrentEntry)), controllerid.DelConnectToken, r)
+	service.Entry(traceId, controllerid.DelConnectToken, r)
 	writeHttpResponse(w, traceId)
 }

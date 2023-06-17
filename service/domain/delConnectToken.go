@@ -53,6 +53,7 @@ func (service *DelConnectTokenService) Exec() interface{} {
 		return nil
 	}
 
+	//set token status=delete
 	isOK := logOutToken(&service.Request.BaseSelfDefine, service.Request.Token)
 	if !isOK {
 		return nil
@@ -66,6 +67,7 @@ func (service *DelConnectTokenService) Exec() interface{} {
 func logOutToken(selfDefine *entity.BaseSelfDefine, token string) bool {
 	now := es.LocalNow(8)
 	isOK := database.DeleteToken(selfDefine.TraceID, token, now)
+	//delete token error
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}

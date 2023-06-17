@@ -5,8 +5,6 @@ import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/innererror"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
 	"TestAPI/external/service/zaplog"
 	"net/http"
 	"net/url"
@@ -25,9 +23,9 @@ func GetHttpResponse(code string, requestTime, traceId string, data interface{})
 	if code == string(errorcode.Default) {
 		code = string(errorcode.UnknowError)
 	}
-	errorMessage := database.GetExternalErrorMessage(es.AddTraceMap("", sqlid.GetExternalErrorMessage.String()), code)
+	errorMessage := database.GetExternalErrorMessage(traceId, code)
 	if errorMessage == "" {
-		errorMessage = database.GetExternalErrorMessage(es.AddTraceMap("", sqlid.GetExternalErrorMessage.String()), string(errorcode.UnknowError))
+		errorMessage = database.GetExternalErrorMessage(traceId, string(errorcode.UnknowError))
 	}
 	resp := entity.BaseHttpResponse{
 		Data: data,
@@ -38,6 +36,7 @@ func GetHttpResponse(code string, requestTime, traceId string, data interface{})
 			TraceCode: traceId,
 		},
 	}
+	//log response body
 	zaplog.Infow(logResponse, innererror.FunctionNode, getHttpResponseFunction, innererror.TraceNode, traceId, "response", resp)
 	return resp
 }

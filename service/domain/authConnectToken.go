@@ -71,6 +71,8 @@ func (service *AuthConnectTokenService) Exec() interface{} {
 		return nil
 	}
 
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerInfo, innererror.TraceNode, service.Request.TraceID, "playerInfo", playerInfo)
+
 	//insert token
 	isOK = addConnectToken2Db(&service.Request.BaseSelfDefine, service.Request.Token, account, currency, service.Request.Ip, gameId)
 	if !isOK {
@@ -113,13 +115,15 @@ func parseConnectToken(selfDefine *entity.BaseSelfDefine, token string, passExpi
 		now := es.Timestamp()
 		if now > tokenData.ExpitreTime {
 			err := fmt.Errorf(tokenExpire)
-			zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseConnectToken, innererror.TraceNode, selfDefine.TraceID, innererror.ErrorInfoNode, err)
+			zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseConnectToken, innererror.TraceNode, selfDefine.TraceID, innererror.ErrorInfoNode, err, "now", now, "tokenData.ExpitreTime", tokenData.ExpitreTime)
 			selfDefine.ErrorCode = string(errorcode.BadParameter)
 			return "", "", 0
 		}
 	}
 
+	//parse token
 	account, currency, gameId = tokenData.Parse()
+
 	return account, currency, gameId
 }
 

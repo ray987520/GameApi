@@ -33,6 +33,8 @@ func InitRedisPool(redis iface.IRedis) bool {
 
 // 取ConnectToken緩存
 func GetConnectTokenCache(traceId string, token string) string {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.GetConnectTokenCache, innererror.TraceNode, traceId, "token", token)
+
 	key := fmt.Sprintf(gameTokenKey, token)
 	value := redisPool.GetKey(traceId, key)
 	//底層錯誤
@@ -45,12 +47,16 @@ func GetConnectTokenCache(traceId string, token string) string {
 
 // 設置ConnectToken緩存
 func SetConnectTokenCache(traceId string, token string, ttl int) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.SetConnectTokenCache, innererror.TraceNode, traceId, "token", token, "ttl", ttl)
+
 	key := fmt.Sprintf(gameTokenKey, token)
 	return redisPool.SetKey(traceId, key, []byte(tokenDefault), ttl)
 }
 
 // 清除玩家基本資料(不常異動)
 func ClearPlayerInfoCache(traceId string, data entity.AuthConnectTokenResponse) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.ClearPlayerInfoCache, innererror.TraceNode, traceId, "data", data)
+
 	baseKey := fmt.Sprintf(playerInfoKey, data.GameID, data.PlayerBase.Currency, data.MemberAccount)
 	walletKey := fmt.Sprintf(playerWalletKey, data.PlayerBase.Currency, data.MemberAccount)
 	return redisPool.DeleteKey(traceId, baseKey, walletKey)
@@ -58,6 +64,8 @@ func ClearPlayerInfoCache(traceId string, data entity.AuthConnectTokenResponse) 
 
 // 取玩家基本資料
 func GetPlayerInfoCache(traceId string, account, currency string, gameId int) (base entity.PlayerBase, wallet entity.PlayerWallet) {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.GetPlayerInfoCache, innererror.TraceNode, traceId, "account", account, "currency", currency, "gameId", gameId)
+
 	baseKey := fmt.Sprintf(playerInfoKey, gameId, currency, account)
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	values := redisPool.GetKeys(traceId, baseKey, walletKey)
@@ -89,6 +97,8 @@ func GetPlayerInfoCache(traceId string, account, currency string, gameId int) (b
 
 // 設置玩家基本資料
 func SetPlayerInfoCache(traceId string, data entity.AuthConnectTokenResponse, token string) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.SetPlayerInfoCache, innererror.TraceNode, traceId, "data", data)
+
 	baseKey := fmt.Sprintf(playerInfoKey, data.GameID, data.PlayerBase.Currency, data.MemberAccount)
 	setKey(traceId, baseKey, data.PlayerBase, 0)
 	betCountKey := fmt.Sprintf(playerBetCountKey, token)
@@ -98,17 +108,10 @@ func SetPlayerInfoCache(traceId string, data entity.AuthConnectTokenResponse, to
 	return true
 }
 
-// 設置玩家基本資料跟錢包
-func SetPlayerBaseAndWallet(traceId string, data entity.AuthConnectTokenResponse) bool {
-	baseKey := fmt.Sprintf(playerInfoKey, data.GameID, data.PlayerBase.Currency, data.MemberAccount)
-	setKey(traceId, baseKey, data.PlayerBase, 0)
-	walletKey := fmt.Sprintf(playerWalletKey, data.PlayerBase.Currency, data.MemberAccount)
-	setKey(traceId, walletKey, data.PlayerWallet, 10)
-	return true
-}
-
 // 設置key,data為struct
 func setKey(traceId string, key string, data interface{}, ttl int) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.SetKey, innererror.TraceNode, traceId, "key", key, "data", data)
+
 	byteData := es.JsonMarshal(traceId, data)
 	//json serialize error
 	if byteData == nil {
@@ -120,6 +123,8 @@ func setKey(traceId string, key string, data interface{}, ttl int) bool {
 
 // 取單一將號
 func GetGameSequenceNumber(traceId string, prefix string) string {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.GetGameSequenceNumber, innererror.TraceNode, traceId, "prefix", prefix)
+
 	key := fmt.Sprintf(gameSequenceNumberKey, prefix)
 	seqNo := redisPool.IncrKey(traceId, key)
 	//底層錯誤
@@ -132,6 +137,8 @@ func GetGameSequenceNumber(traceId string, prefix string) string {
 
 // 取多將號
 func GetGameSequenceNumbers(traceId string, quantity int, prefix string) []string {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.GetGameSequenceNumbers, innererror.TraceNode, traceId, "quantity", quantity, "prefix", prefix)
+
 	key := fmt.Sprintf(gameSequenceNumberKey, prefix)
 	//先預定數量,然後計算出連號
 	seqNo := redisPool.IncrKeyBy(traceId, key, quantity)
@@ -149,6 +156,8 @@ func GetGameSequenceNumbers(traceId string, quantity int, prefix string) []strin
 
 // 取補單token緩存
 func GetFinishGameResultTokenCache(traceId string, token string) string {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.GetFinishGameResultTokenCache, innererror.TraceNode, traceId, "token", token)
+
 	key := fmt.Sprintf(finishGameResultTokenKey, token)
 	value := redisPool.GetKey(traceId, key)
 	//底層錯誤
@@ -161,12 +170,16 @@ func GetFinishGameResultTokenCache(traceId string, token string) string {
 
 // 設置補單token緩存,ttl 1800秒
 func SetFinishGameResultTokenCache(traceId string, token string) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.SetFinishGameResultTokenCache, innererror.TraceNode, traceId, "token", token)
+
 	key := fmt.Sprintf(finishGameResultTokenKey, token)
 	return redisPool.SetKey(traceId, key, []byte(tokenDefault), 1800)
 }
 
 // 取玩家錢包緩存
 func GetPlayerWalletCache(traceId string, account, currency string) (wallet entity.PlayerWallet, isOK bool) {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.GetPlayerWalletCache, innererror.TraceNode, traceId, "account", account, "currency", currency)
+
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	data := redisPool.GetKey(traceId, walletKey)
 	//redis no data
@@ -185,6 +198,8 @@ func GetPlayerWalletCache(traceId string, account, currency string) (wallet enti
 
 // 設置玩家錢包緩存
 func SetPlayerWalletCache(traceId string, account, currency string, data entity.PlayerWallet) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.SetPlayerWalletCache, innererror.TraceNode, traceId, "account", account, "currency", currency, "data", data)
+
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	byteData := es.JsonMarshal(traceId, data)
 	//json serialize error
@@ -197,6 +212,8 @@ func SetPlayerWalletCache(traceId string, account, currency string, data entity.
 
 // 清除玩家錢包緩存
 func ClearPlayerWalletCache(traceId string, currency, account string) bool {
+	zaplog.Infow(dbInfo, innererror.FunctionNode, redisid.ClearPlayerWalletCache, innererror.TraceNode, traceId, "account", account, "currency", currency)
+
 	walletKey := fmt.Sprintf(playerWalletKey, currency, account)
 	return redisPool.DeleteKey(traceId, walletKey)
 }

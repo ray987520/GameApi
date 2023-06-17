@@ -43,6 +43,9 @@
     "api": {
         "report": {
             "historyReportUrl": "https://www.gameReport.com"
+        },
+        "game": {
+            "gameSequenceNumberPrefix": ""
         }
     }
 }

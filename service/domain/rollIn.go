@@ -5,10 +5,9 @@ import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/functionid"
-	"TestAPI/enum/redisid"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
+	"TestAPI/enum/innererror"
 	"TestAPI/external/service/tracer"
+	"TestAPI/external/service/zaplog"
 	"net/http"
 	"strings"
 
@@ -16,80 +15,90 @@ import (
 )
 
 type RollInService struct {
-	Request  entity.RollInRequest
-	TraceMap string
+	Request entity.RollInRequest
 }
 
 // databinding&validate
-func ParseRollInRequest(traceMap string, r *http.Request) (request entity.RollInRequest, err error) {
-	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
-	if err != nil {
-		return request, err
+func ParseRollInRequest(traceId string, r *http.Request) (request entity.RollInRequest) {
+	body, isOK := readHttpRequestBody(traceId, r, &request)
+	//read body error
+	if !isOK {
+		return request
 	}
 
-	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
-	if err != nil {
-		return request, err
+	isOK = parseJsonBody(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
+		return request
 	}
 
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) || !strings.HasPrefix(request.TransID, "rollIn-") {
+	//validate request,transId因為model公用所以在這裡另外寫條件
+	if !IsValid(traceId, request) || !strings.HasPrefix(request.TransID, "rollIn-") {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+
+	return request
 }
 
 func (service *RollInService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
+	if isConnectTokenError(&service.Request.BaseSelfDefine, service.Request.Token) {
 		return nil
 	}
 
-	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
+	//parse game token
+	account, currency, _ := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
 		return nil
 	}
 
-	hasRollOut, rollOutAmount := hasRollOutHistory(es.AddTraceMap(service.TraceMap, string(functionid.HasRollOutHistory)), &service.Request.BaseSelfDefine, service.Request.GameSequenceNumber)
+	//check tollOut record existed
+	hasRollOut, _ := hasRollOutHistory(&service.Request.BaseSelfDefine, service.Request.GameSequenceNumber)
 	if !hasRollOut {
 		return nil
 	}
 
-	//*TOCHECK 理論上rollout amount應等於rollint bet
+	/* *TOCHECK 理論上rollout amount應等於rollint bet
 	if !rollOutAmount.Equal(service.Request.CurrencyKindBet) {
 		service.Request.ErrorCode = string(errorcode.BadParameter)
 		return nil
 	}
+	*/
 
-	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
+	//get wallet
+	wallet, isOK := getPlayerWallet(&service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
 		return nil
 	}
 
-	isAddGameResultOK := addGameResult(es.AddTraceMap(service.TraceMap, string(functionid.AddGameResult)), &service.Request.BaseSelfDefine, service.Request.GameResult)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+
+	//try add game result
+	isAddGameResultOK := addGameResult(&service.Request.BaseSelfDefine, service.Request.GameResult)
 	if !isAddGameResultOK {
 		return nil
 	}
 
-	isAddRollHistoryOK := addRollInHistory(es.AddTraceMap(service.TraceMap, string(functionid.AddRollInHistory)), &service.Request.BaseSelfDefine, service.Request.GameResult, wallet)
+	//try add rollIn record
+	isAddRollHistoryOK := addRollInHistory(&service.Request.BaseSelfDefine, service.Request.GameResult, wallet)
 	if !isAddRollHistoryOK {
 		return nil
 	}
 
-	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
-
-	data = refreshWallet(es.AddTraceMap(service.TraceMap, string(functionid.RefreshWallet)), &service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
+	data = refreshWallet(&service.Request.BaseSelfDefine, account, currency, service.Request.Token, service.Request.TurnTimes)
 	if data == nil {
 		return nil
 	}
@@ -99,12 +108,14 @@ func (service *RollInService) Exec() (data interface{}) {
 }
 
 // 防呆,檢查要先有rollOut
-func hasRollOutHistory(traceMap string, selfDefine *entity.BaseSelfDefine, seqNo string) (hasData bool, rollOutAmount decimal.Decimal) {
-	hasData, rollOutAmount = database.IsExistsRolloutHistory(es.AddTraceMap(traceMap, sqlid.IsExistsRolloutHistory.String()), seqNo)
+func hasRollOutHistory(selfDefine *entity.BaseSelfDefine, seqNo string) (hasData bool, rollOutAmount decimal.Decimal) {
+	hasData, rollOutAmount = database.IsExistsRolloutHistory(selfDefine.TraceID, seqNo)
+	//get no rollOut history
 	if !hasData {
 		selfDefine.ErrorCode = string(errorcode.BadParameter)
 		return false, decimal.Zero
 	}
+
 	return hasData, rollOutAmount
 }
 

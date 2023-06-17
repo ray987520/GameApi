@@ -5,77 +5,90 @@ import (
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
 	"TestAPI/enum/functionid"
-	"TestAPI/enum/redisid"
-	"TestAPI/enum/sqlid"
-	es "TestAPI/external/service"
+	"TestAPI/enum/innererror"
 	"TestAPI/external/service/tracer"
+	"TestAPI/external/service/zaplog"
 	"net/http"
 	"strings"
 )
 
 type RollOutService struct {
-	Request  entity.RollOutRequest
-	TraceMap string
+	Request entity.RollOutRequest
 }
 
 // databinding&validate
-func ParseRollOutRequest(traceMap string, r *http.Request) (request entity.RollOutRequest, err error) {
-	body, err := readHttpRequestBody(es.AddTraceMap(traceMap, string(functionid.ReadHttpRequestBody)), r, &request)
-	if err != nil {
-		return request, err
+func ParseRollOutRequest(traceId string, r *http.Request) (request entity.RollOutRequest) {
+	body, isOK := readHttpRequestBody(traceId, r, &request)
+	//read body error
+	if !isOK {
+		return request
 	}
 
-	err = parseJsonBody(es.AddTraceMap(traceMap, string(functionid.ParseJsonBody)), body, &request)
-	if err != nil {
-		return request, err
+	isOK = parseJsonBody(traceId, body, &request)
+	//json deserialize error
+	if !isOK {
+		return request
 	}
 
+	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
 	request.TraceID = r.Header.Get(traceHeader)
 	request.RequestTime = r.Header.Get(requestTimeHeader)
 	request.ErrorCode = r.Header.Get(errorCodeHeader)
 
-	if !IsValid(es.AddTraceMap(traceMap, string(functionid.IsValid)), request) || !strings.HasPrefix(request.TransID, "rollOut-") {
+	//validate reqeust,transId因為model公用所以在這裡另外寫條件
+	if !IsValid(traceId, request) || !strings.HasPrefix(request.TransID, "rollOut-") {
 		request.ErrorCode = string(errorcode.BadParameter)
-		return request, err
+		return request
 	}
-	return request, nil
+
+	return request
 }
 
 func (service *RollOutService) Exec() (data interface{}) {
-	defer tracer.PanicTrace(service.TraceMap)
+	defer tracer.PanicTrace(service.Request.TraceID)
 
 	if service.Request.HasError() {
 		return nil
 	}
 
-	if isConnectTokenError(es.AddTraceMap(service.TraceMap, string(functionid.IsConnectTokenError)), &service.Request.BaseSelfDefine, service.Request.Token) {
+	if isConnectTokenError(&service.Request.BaseSelfDefine, service.Request.Token) {
 		return nil
 	}
 
-	account, currency, _ := parseConnectToken(es.AddTraceMap(service.TraceMap, string(functionid.ParseConnectToken)), &service.Request.BaseSelfDefine, service.Request.Token, true)
+	//parse game token
+	account, currency, _ := parseConnectToken(&service.Request.BaseSelfDefine, service.Request.Token, true)
 	if account == "" {
 		return nil
 	}
 
-	wallet, isOK := getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
+	//get wallet
+	wallet, isOK := getPlayerWallet(&service.Request.BaseSelfDefine, account, currency)
 	if !isOK {
 		return nil
 	}
 
-	isAddRollHistoryOK := addRollOutHistory(es.AddTraceMap(service.TraceMap, string(functionid.AddRollOutHistory)), &service.Request.BaseSelfDefine, service.Request.RollHistory, wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+
+	//add rollOut record
+	isAddRollHistoryOK := addRollOutHistory(&service.Request.BaseSelfDefine, service.Request.RollHistory, wallet)
 	if !isAddRollHistoryOK {
 		return nil
 	}
 
-	database.ClearPlayerWalletCache(es.AddTraceMap(service.TraceMap, redisid.ClearPlayerWalletCache.String()), currency, account)
+	//clear wallet cache to sync
+	database.ClearPlayerWalletCache(service.Request.TraceID, currency, account)
 
+	//if user want get wallet data
 	if service.Request.TakeAll == 0 {
-		wallet, isOK = getPlayerWallet(es.AddTraceMap(service.TraceMap, string(functionid.GetPlayerWallet)), &service.Request.BaseSelfDefine, account, currency)
+		wallet, isOK = getPlayerWallet(&service.Request.BaseSelfDefine, account, currency)
+		//get wallet error
 		if !isOK {
 			return nil
 		}
+
+		zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
 
 		service.Request.ErrorCode = string(errorcode.Success)
 		return entity.RollOutResponse{
@@ -90,8 +103,9 @@ func (service *RollOutService) Exec() (data interface{}) {
 }
 
 // 添加rollOut並更新錢包
-func addRollOutHistory(traceMap string, selfDefine *entity.BaseSelfDefine, data entity.RollHistory, wallet entity.PlayerWallet) (isOK bool) {
-	isOK = database.AddRollOutHistory(es.AddTraceMap(traceMap, sqlid.AddRollOutHistory.String()), data, wallet)
+func addRollOutHistory(selfDefine *entity.BaseSelfDefine, data entity.RollHistory, wallet entity.PlayerWallet) (isOK bool) {
+	isOK = database.AddRollOutHistory(selfDefine.TraceID, data, wallet)
+	//add rollOut record error
 	if !isOK {
 		selfDefine.ErrorCode = string(errorcode.UnknowError)
 	}
