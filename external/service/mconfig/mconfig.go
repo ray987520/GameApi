@@ -20,7 +20,7 @@ const (
 )
 
 // 初始化viper
-func init() {
+func InitConfigManager() {
 	viper.AddConfigPath("./")
 	viper.SetConfigName(configFileName)
 	err := viper.ReadInConfig()

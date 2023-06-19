@@ -25,10 +25,10 @@ const (
 
 var (
 	sqlDB            *gorm.DB
-	sqlConnectString = mconfig.GetString("sql.connectString.master")
-	maxOpenConns     = mconfig.GetInt("sql.maxOpenConns")
-	maxIdleConns     = mconfig.GetInt("sql.maxIdleConns")
-	maxIdleSecond    = mconfig.GetDuration("sql.maxIdleSecond")
+	sqlConnectString string
+	maxOpenConns     int
+	maxIdleConns     int
+	maxIdleSecond    time.Duration
 )
 
 // 取GormDB實例
@@ -39,6 +39,10 @@ func GetSqlDb() *GormDB {
 
 // 初始化,建立sql db連線與實例
 func SqlInit() {
+	sqlConnectString = mconfig.GetString("sql.connectString.master")
+	maxOpenConns = mconfig.GetInt("sql.maxOpenConns")
+	maxIdleConns = mconfig.GetInt("sql.maxIdleConns")
+	maxIdleSecond = mconfig.GetDuration("sql.maxIdleSecond")
 	//gorm連接sql server
 	db, err := gorm.Open(sqlserver.Open(sqlConnectString), &gorm.Config{})
 	db.Use(dbresolver.Register(dbresolver.Config{

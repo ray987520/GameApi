@@ -36,6 +36,14 @@
         "maxIdleConns": 1,
         "maxIdleSecond": 60
     },
+    "elasticsearch": {
+        "hosts": [
+            "http://127.0.0.1:9200"
+        ],
+        "maxIdleConnsPerHost": 1,
+        "responseHeaderTimeout": 10,
+        "dialTimeout": 10
+    },
     "core": {
         "maxWorker": 10,
         "maxJobQueue": 512

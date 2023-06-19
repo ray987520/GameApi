@@ -26,13 +26,14 @@ var (
 )
 
 // init DB底層跟接收response的map
-func init() {
+func InitConcurrentService() {
 	sqlDb = es.GetSqlDb()
 	database.InitSqlWorker(sqlDb)
 	redisPool = es.GetRedisPool()
 	database.InitRedisPool(redisPool)
 	//sync.Map不需要初始化
 	//ResponseMap = make(map[string]chan entity.BaseHttpResponse)
+	initDispatcher()
 }
 
 // 依照domainID分類初始化job資料

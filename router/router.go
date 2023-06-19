@@ -34,7 +34,7 @@ type Route struct {
 
 var (
 	routes    []Route
-	apiTokens = mconfig.GetStringSlice("application.apiToken") //api auth tokens
+	apiTokens []string //api auth tokens
 )
 
 const (
@@ -54,7 +54,8 @@ const (
 )
 
 // 初始化,註冊所有api controller/middleware跟api path對應
-func init() {
+func initRoutes() {
+	apiTokens = mconfig.GetStringSlice("application.apiToken") //api auth tokens
 	register("GET", "/token/createGuestConnectToken", controller.CreateGuestConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
 	register("POST", "/v1.0/connectToken/authorization", controller.AuthConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
 	register("POST", "/token/updateConnectTokenLocation", controller.UpdateTokenLocation, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
@@ -91,6 +92,7 @@ func initPprofRouter(router *mux.Router) {
 
 // 使用mux Router,分不同前路徑規則劃分為swagger|api,使用不同middleware
 func NewRouter() http.Handler {
+	initRoutes()
 	r := mux.NewRouter()
 	//swagger走自己的路徑不用經過middleware,/swagger,default寫法:r.PathPrefix(swaggerPath).Handler(httpSwagger.WrapHandler)
 	//部分ui畫面可以自訂的寫法如下,可以控制有沒有swagger外框,插入plugin/uiconfig的JS

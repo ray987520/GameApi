@@ -28,7 +28,7 @@ func getMachineID() (machineID uint16, err error) {
 }
 
 // 初始化,設置sonyFlake基礎值
-func init() {
+func InitSonyflake() {
 	beginTime, err := time.Parse(DbTimeFormat, sonyFlakeBaseTime)
 	if err != nil {
 		err = fmt.Errorf(initFlakeTimeError, err)

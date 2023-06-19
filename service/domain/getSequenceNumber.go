@@ -13,10 +13,6 @@ type GetSequenceNumberService struct {
 	Request entity.GetSequenceNumberRequest
 }
 
-var (
-	gameSequenceNumberPrefix = mconfig.GetString("api.game.gameSequenceNumberPrefix")
-)
-
 // databinding&validate
 func ParseGetSequenceNumberRequest(traceId string, r *http.Request) (request entity.GetSequenceNumberRequest) {
 	//read header
@@ -49,6 +45,7 @@ func (service *GetSequenceNumberService) Exec() (data interface{}) {
 
 // 取單一將號,暫時prefix給空字串,如果redis數字爆掉可以加上新prefix避免重覆
 func getGameSequenceNumber(selfDefine *entity.BaseSelfDefine) string {
+	gameSequenceNumberPrefix := mconfig.GetString("api.game.gameSequenceNumberPrefix")
 	seqNo := database.GetGameSequenceNumber(selfDefine.TraceID, gameSequenceNumberPrefix)
 	//get game sequence number error
 	if seqNo == "" {

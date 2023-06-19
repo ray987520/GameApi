@@ -1,6 +1,7 @@
 package service
 
 import (
+	"TestAPI/external/service/mconfig"
 	iface "TestAPI/interface"
 )
 
@@ -11,7 +12,9 @@ type Dispatcher struct {
 }
 
 // 初始化job queue,worker pool,執行dispatcher
-func init() {
+func initDispatcher() {
+	MaxWorker = mconfig.GetInt("core.maxWorker")  //最大worker總數,即service服務pool總數
+	MaxQueue = mconfig.GetInt("core.maxJobQueue") //最大job queue buffer數
 	JobQueue = make(chan iface.IJob, MaxQueue)
 	dispatcher := NewDispatcher(MaxWorker)
 	dispatcher.Run()

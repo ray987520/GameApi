@@ -27,8 +27,12 @@ const (
 )
 
 var (
-	jwtSecret = []byte(mconfig.GetString("crypt.jwtKey")) // jwt secret key
+	jwtSecret []byte // jwt secret key
 )
+
+func InitJwt() {
+	jwtSecret = []byte(mconfig.GetString("crypt.jwtKey"))
+}
 
 // 產生JWT TOKEN
 func CreateConnectToken(traceId string, account, currency string, gameId int) (tokenString string) {

@@ -29,4 +29,6 @@ const (
 	JsonMarshal           EsId = "es_JsonMarshal"
 	JsonUnMarshal         EsId = "es_JsonUnMarshal"
 	PanicTrace            EsId = "es_PanicTrace"
+	ElasticInit           EsId = "es_ElasticInit"
+	ElasticCreateIndex    EsId = "es_ElasticCreateIndex"
 )

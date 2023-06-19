@@ -14,10 +14,10 @@ import (
 
 var (
 	redisConnectProtocol = "tcp"
-	redisConnectServer   = mconfig.GetString("redis.connServer")
-	maxRedisOpenConns    = mconfig.GetInt("redis.maxOpenConns")
-	maxRedisIdleConns    = mconfig.GetInt("redis.maxIdleConns")
-	maxRedisIdleSecond   = mconfig.GetDuration("redis.maxIdleSecond")
+	redisConnectServer   string
+	maxRedisOpenConns    int
+	maxRedisIdleConns    int
+	maxRedisIdleSecond   time.Duration
 	redisDialError       = "redigo connection error:%v"
 	redisPingError       = "redigo ping error:%v"
 )
@@ -29,12 +29,18 @@ type RedisPool struct {
 
 // 取redis pool實例
 func GetRedisPool() *RedisPool {
-	RedisInit()
+	if redisPool == nil {
+		RedisInit()
+	}
 	return &RedisPool{}
 }
 
 // 初始化,連線redis
 func RedisInit() {
+	redisConnectServer = mconfig.GetString("redis.connServer")
+	maxRedisOpenConns = mconfig.GetInt("redis.maxOpenConns")
+	maxRedisIdleConns = mconfig.GetInt("redis.maxIdleConns")
+	maxRedisIdleSecond = mconfig.GetDuration("redis.maxIdleSecond")
 	redisPool = &redis.Pool{
 		MaxIdle:     maxRedisIdleConns, //空闲数
 		IdleTimeout: maxRedisIdleSecond * time.Second,

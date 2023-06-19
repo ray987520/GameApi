@@ -17,10 +17,6 @@ const (
 	responseFormatError      = "Http Response Json Format Error"
 )
 
-var (
-	traceIdFieldName = mconfig.GetString("trace.idFieldName")
-)
-
 // @Summary	取得測試令牌1.0
 // @Tags		Token
 // @Param		Authorization	header		string	true	"auth token"
@@ -38,6 +34,7 @@ func CreateGuestConnectToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTraceIdFromRequest(r *http.Request) (traceID string) {
+	traceIdFieldName := mconfig.GetString("trace.idFieldName")
 	return r.Header.Get(traceIdFieldName)
 }
 

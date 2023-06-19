@@ -29,7 +29,7 @@ type LogRecord struct {
 var mgoCli *mongo.Client
 
 // 初始化mongodb
-func init() {
+func InitMongo() {
 	var err error
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 

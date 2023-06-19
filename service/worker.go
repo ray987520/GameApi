@@ -2,14 +2,13 @@ package service
 
 import (
 	"TestAPI/entity"
-	"TestAPI/external/service/mconfig"
 	iface "TestAPI/interface"
 )
 
 // 定義woker基礎數值,應按實際運作再調整
 var (
-	MaxWorker = mconfig.GetInt("core.maxWorker")   //最大worker總數,即service服務pool總數
-	MaxQueue  = mconfig.GetInt("core.maxJobQueue") //最大job queue buffer數
+	MaxWorker int //最大worker總數,即service服務pool總數
+	MaxQueue  int //最大job queue buffer數
 	JobQueue  chan iface.IJob
 )
 

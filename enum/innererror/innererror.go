@@ -1,7 +1,7 @@
 package innererror
 
 const (
-	TraceNode     = "traceMap"  //用於zaplog,traceMap節點名稱
+	TraceNode     = "traceId"   //用於zaplog,traceId節點名稱
 	FunctionNode  = "function"  //用於zaplog,function節點名稱
 	ErrorInfoNode = "error"     //用於zaplog,error節點名稱
 	ErrorTypeNode = "errorType" //用於zaplog,errorType節點名稱

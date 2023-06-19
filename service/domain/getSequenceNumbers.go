@@ -4,6 +4,7 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/str"
 	"TestAPI/external/service/tracer"
 	"net/http"
@@ -63,6 +64,7 @@ func (service *GetSequenceNumbersService) Exec() (data interface{}) {
 
 // 取多個將號,暫時prefix給空字串,如果redis數字爆掉可以加上新prefix避免重覆
 func getGameSequenceNumbers(selfDefine *entity.BaseSelfDefine, qty int) []string {
+	gameSequenceNumberPrefix := mconfig.GetString("api.game.gameSequenceNumberPrefix")
 	seqNos := database.GetGameSequenceNumbers(selfDefine.TraceID, qty, gameSequenceNumberPrefix)
 	//get game sequence numbers error
 	if len(seqNos) != qty {

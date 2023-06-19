@@ -40,6 +40,8 @@ var (
 		"info":  zapcore.InfoLevel,
 		"error": zapcore.ErrorLevel,
 	}
+	elsService = NewElasticService()
+	zviper     *viper.Viper
 )
 
 const (
@@ -50,8 +52,8 @@ const (
 )
 
 // 初始化viper,因為zaplog為最底層,跟mconfig又不同包,避免循環參照只能拉到同一層或是獨立viper
-func init() {
-	zviper := viper.New()
+func InitZaplog() {
+	zviper = viper.New()
 	zviper.AddConfigPath("./")
 	zviper.SetConfigName(configFileName)
 	err := zviper.ReadInConfig()
@@ -64,6 +66,12 @@ func init() {
 	svcname = zviper.GetString("log.svcname")                 //log檔名
 	logFilePath = zviper.GetString("log.logFilePath")         //log檔案路徑
 	defaultLogLevel = zviper.GetString("log.defaultLogLevel") //預設log level
+	filePath := getFilePath()
+	level := getLoggerLevel(defaultLogLevel)
+	log := NewLogger(filePath, level, maxlogsize, maxbackup, maxage, true, svcname)
+	logger = log.Sugar()
+	logger.Sync()
+	initElastic()
 }
 
 // 取logger層級,預設info
@@ -79,15 +87,6 @@ func getLoggerLevel(lvl string) zapcore.Level {
 func SetLoggerLevel(lvl string) {
 	filePath := getFilePath()
 	level := getLoggerLevel(lvl)
-	log := NewLogger(filePath, level, maxlogsize, maxbackup, maxage, true, svcname)
-	logger = log.Sugar()
-	logger.Sync()
-}
-
-// 初始化log檔案路徑,log層級跟logger
-func init() {
-	filePath := getFilePath()
-	level := getLoggerLevel(defaultLogLevel)
 	log := NewLogger(filePath, level, maxlogsize, maxbackup, maxage, true, svcname)
 	logger = log.Sugar()
 	logger.Sync()
@@ -125,9 +124,9 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 		EncodeName: zapcore.FullNameEncoder,
 	}
 	return zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),                                           // 编码器配置
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)), // 打印到控制台和文件
-		zap.NewAtomicLevelAt(level),                                                     // 日志级别
+		zapcore.NewJSONEncoder(encoderConfig), // 编码器配置
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(elsService), zapcore.AddSync(&hook)), // 打印到控制台和文件
+		zap.NewAtomicLevelAt(level), // 日志级别
 	)
 }
 
