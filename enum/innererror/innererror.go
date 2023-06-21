@@ -1,12 +1,14 @@
 package innererror
 
 const (
-	TraceNode     = "traceId"   //用於zaplog,traceId節點名稱
-	FunctionNode  = "function"  //用於zaplog,function節點名稱
-	ErrorInfoNode = "error"     //用於zaplog,error節點名稱
-	ErrorTypeNode = "errorType" //用於zaplog,errorType節點名稱
-	DataNode      = "data"      //用於zaplog,data節點名稱
-	InfoNode      = "info"      //用於zaplog,info節點名稱
+	TraceNode       = "traceId"     //用於zaplog,traceId節點名稱
+	FunctionNode    = "function"    //用於zaplog,function節點名稱
+	ErrorInfoNode   = "error"       //用於zaplog,error節點名稱
+	ErrorCodeNode   = "errorcode"   //用於zaplog,errorcode節點名稱
+	DataNode        = "content"     //用於zaplog,data節點名稱
+	InfoNode        = "processInfo" //用於zaplog,info節點名稱
+	RequestTimeNode = "requesttime" //用於zaplog,requesttime節點名稱
+	TotalTimeNode   = "totalTime"   //用於zaplog,totalTime節點名稱
 )
 
 const (
@@ -14,7 +16,7 @@ const (
 	DBSqlError           = "sql error"              //用於zaplog,internal error type
 	ServiceError         = "service error"          //用於zaplog,internal error type
 	ExternalServiceError = "external service error" //用於zaplog,internal error type
-	ValidRequestError    = "Bad HttpRequest"        //用於zaplog,internal error type
+	ValidRequestError    = "bad http request"       //用於zaplog,internal error type
 	ConfigError          = "config error"           //用於zaplog,internal error type
 	PanicError           = "panic error"            //用於zaplog,internal error type
 	MiddlewareError      = "middleware error"       //用於zaplog,internal error type
@@ -24,44 +26,44 @@ type JsonError string
 
 // 列管internal json序列反序列化 error,用於zaplog分類
 const (
-	JsonMarshalError   JsonError = "Json Marshal error"
-	JsonUnMarshalError JsonError = "Json UnMarshal error"
+	JsonMarshalError   JsonError = "json marshal error"
+	JsonUnMarshalError JsonError = "Json unmarshal error"
 )
 
 type TimeError string
 
 // 列管internal time usage error,用於zaplog分類
 const (
-	TimeParseError TimeError = "Time Parse Error"
+	TimeParseError TimeError = "time parse error"
 )
 
 type DataTransferError string
 
 // 列管internal data轉換 error,用於zaplog分類
 const (
-	StringToIntError DataTransferError = "Transfer String2Int Error"
+	StringToIntError DataTransferError = "transfer String to Int error"
 )
 
 type DomainError string
 
 // 列管internal domain檢查 error,用於zaplog分類
 const (
-	BaseCheckError DomainError = "Request Validate Error"
+	BaseCheckError DomainError = "request validate error"
 )
 
 type SonyflakeError string
 
 // 列管sonyflake uuid error,用於zaplog分類
 const (
-	InitFlakeError SonyflakeError = "Init SonyFlake Error"
-	GenUidError    SonyflakeError = "Uuid Gen Error"
+	InitFlakeError SonyflakeError = "init sonyflake error"
+	GenUidError    SonyflakeError = "uuid gen error"
 )
 
 type ViperError string
 
 // 列管viper error,用於zaplog分類
 const (
-	ReadConfigError ViperError = "Viper Read Config Error"
+	ReadConfigError ViperError = "viper read config error"
 )
 
 type MConfigId string

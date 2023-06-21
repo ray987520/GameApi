@@ -16,9 +16,6 @@ import (
 const (
 	authHeader        = "Authorization"
 	contentTypeHeader = "Content-Type"
-	traceHeader       = "traceid"
-	requestTimeHeader = "requesttime"
-	errorCodeHeader   = "errorcode"
 )
 
 type AddGameLogService struct {
@@ -42,9 +39,9 @@ func ParseAddGameLogRequest(traceId string, r *http.Request) (request entity.Add
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate request
 	if !IsValid(traceId, request) {
@@ -78,7 +75,7 @@ func (service *AddGameLogService) Exec() (data interface{}) {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.Currency2ExchangeRate, innererror.TraceNode, service.Request.TraceID, "exchangeRate", exchangeRate)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.Currency2ExchangeRate, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("exchangeRate", exchangeRate))
 
 	//insert gamelog
 	isOK := addGameLog2Db(&service.Request, exchangeRate)

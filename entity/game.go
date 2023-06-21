@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"net/http"
+	es "TestAPI/external/service"
 
 	"github.com/shopspring/decimal"
 )
@@ -11,6 +11,11 @@ type GameResultRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	GameResult
+}
+
+func (req *GameResultRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 func (req *GameResultRequest) SetErrorCode(errorCode string) {
@@ -49,6 +54,11 @@ type FinishGameResultRequest struct {
 	FinishGameResult
 }
 
+func (req *FinishGameResultRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
+}
+
 func (req *FinishGameResultRequest) SetErrorCode(errorCode string) {
 	req.ErrorCode = errorCode
 }
@@ -66,16 +76,13 @@ type AddGameLogRequest struct {
 	GameLog
 }
 
-func (req *AddGameLogRequest) SetErrorCode(errorCode string) {
-	req.ErrorCode = errorCode
+func (req *AddGameLogRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
-func (request *AddGameLogRequest) ReadHttpHeader(r *http.Request) {
-	request.Authorization = r.Header.Get(authHeader)
-	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+func (req *AddGameLogRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
 }
 
 // 寫遊戲紀錄requestdata

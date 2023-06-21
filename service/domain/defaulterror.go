@@ -34,9 +34,9 @@ func ParseDefaultError(traceMap string, r *http.Request) (request entity.Default
 	//read request header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 	return request
 }
 
@@ -45,7 +45,7 @@ func IsValid(traceId string, data interface{}) bool {
 	err := validate.Struct(data)
 	//validate套件驗證到錯誤
 	if err != nil {
-		zaplog.Errorw(innererror.ValidRequestError, innererror.FunctionNode, functionid.IsValid, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ValidRequestError, innererror.FunctionNode, functionid.IsValid, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return false
 	}
 
@@ -56,7 +56,7 @@ func IsValid(traceId string, data interface{}) bool {
 func ValidateAccount(f1 validator.FieldLevel) bool {
 	match, err := regexp.MatchString("[a-zA-Z0-9_-]{3,32}", f1.Field().String())
 	if err != nil {
-		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ValidateAccount, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ValidateAccount, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 		return false
 	}
 	return match
@@ -77,7 +77,7 @@ func readHttpRequestBody(traceId string, r *http.Request, request iface.IRequest
 	body, err := ioutil.ReadAll(r.Body)
 	//read request body error
 	if err != nil {
-		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ReadHttpRequestBody, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ReadHttpRequestBody, innererror.TraceNode, traceId, innererror.DataNode, err)
 		request.SetErrorCode(string(errorcode.BadParameter))
 		return nil, false
 	}

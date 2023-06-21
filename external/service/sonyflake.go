@@ -32,7 +32,7 @@ func InitSonyflake() {
 	beginTime, err := time.Parse(DbTimeFormat, sonyFlakeBaseTime)
 	if err != nil {
 		err = fmt.Errorf(initFlakeTimeError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 		return
 	}
 	st := sonyflake.Settings{
@@ -46,12 +46,12 @@ func InitSonyflake() {
 func Gen(traceId string) (uuid string) {
 	if sonyFlake == nil {
 		err := fmt.Errorf(flakeInstanceError)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return ""
 	}
 	id, err := sonyFlake.NextID()
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.UuidGen, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return ""
 	}
 	//轉成16進位數字字串(比較短)

@@ -56,7 +56,7 @@ func SqlInit() {
 		SetConnMaxIdleTime(maxIdleSecond * time.Second))
 	if err != nil {
 		err = fmt.Errorf(connectionError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 		panic(err)
 	}
 
@@ -64,13 +64,13 @@ func SqlInit() {
 	sqlDb, err := db.DB()
 	if err != nil {
 		err = fmt.Errorf(dbInstanceError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 		panic(err)
 	}
 
 	//初始化後列印DB狀態
 	data := JsonMarshal(tracer.DefaultTraceId, sqlDb.Stats())
-	zaplog.Info(fmt.Sprintf(dbStat, string(data)))
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, esid.SqlInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, fmt.Sprintf(dbStat, string(data)))
 
 	//把connection傳給全域變數
 	sqlDB = db
@@ -80,7 +80,7 @@ func SqlInit() {
 func (gormDB *GormDB) Select(traceId string, model interface{}, sqlString string, params ...interface{}) (rowsAffect int64) {
 	tx := sqlDB.Raw(sqlString, params...).Scan(model)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlSelect, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlSelect, innererror.TraceNode, traceId, innererror.DataNode, tx.Error)
 		return -1
 	}
 	return tx.RowsAffected
@@ -90,7 +90,7 @@ func (gormDB *GormDB) Select(traceId string, model interface{}, sqlString string
 func (gormDB *GormDB) Update(traceId string, sqlString string, params ...interface{}) (rowsAffect int64) {
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlUpdate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlUpdate, innererror.TraceNode, traceId, innererror.DataNode, tx.Error)
 		return -1
 	}
 	return tx.RowsAffected
@@ -100,7 +100,7 @@ func (gormDB *GormDB) Update(traceId string, sqlString string, params ...interfa
 func (gormDB *GormDB) Delete(traceId string, sqlString string, params ...interface{}) (rowsAffect int64) {
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlDelete, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlDelete, innererror.TraceNode, traceId, innererror.DataNode, tx.Error)
 		return -1
 	}
 	return tx.RowsAffected
@@ -110,7 +110,7 @@ func (gormDB *GormDB) Delete(traceId string, sqlString string, params ...interfa
 func (gormDB *GormDB) Create(traceId string, sqlString string, params ...interface{}) (rowsAffect int64) {
 	tx := sqlDB.Exec(sqlString, params...)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlCreate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "sqlString", sqlString, "params", params)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlCreate, innererror.TraceNode, traceId, innererror.DataNode, tx.Error)
 		return -1
 	}
 	return tx.RowsAffected
@@ -120,7 +120,7 @@ func (gormDB *GormDB) Create(traceId string, sqlString string, params ...interfa
 func (gormDB *GormDB) BatchCreate(traceId string, tableName string, datas interface{}, batchSize int) (rowsAffect int64) {
 	tx := sqlDB.Table(tableName).CreateInBatches(datas, batchSize)
 	if tx.Error != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlBatchCreate, innererror.TraceNode, traceId, innererror.ErrorInfoNode, tx.Error, "tableName", tableName, "datas", datas)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlBatchCreate, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, tx.Error, "tableName", tableName, "datas", datas))
 		return -1
 	}
 	return tx.RowsAffected
@@ -141,21 +141,21 @@ func (gormDB *GormDB) BatchCreate(traceId string, tableName string, datas interf
 			if params != nil {
 				partwork := tx.Exec(sql, params[i]...)
 				if partwork.Error != nil {
-					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.ErrorTypeNode, innererror.TransactionError, innererror.ErrorInfoNode, partwork.Error, "sql", sql, "params", params[i])
+					zaplog.Errorw(LOG)
 					tx.Rollback()
 					return partwork.Error
 				}
 			} else {
 				partwork := tx.Exec(sql)
 				if partwork.Error != nil {
-					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.ErrorTypeNode, innererror.TransactionError, innererror.ErrorInfoNode, partwork.Error, "sql", sql)
+					zaplog.Errorw(LOG)
 					tx.Rollback()
 					return partwork.Error
 				}
 			}
 		}
 		if tx.Error != nil {
-			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlCreate, innererror.ErrorTypeNode, innererror.CreateError, innererror.ErrorInfoNode, tx.Error)
+			zaplog.Errorw(LOG)
 			tx.Rollback()
 		}
 		return tx.Commit().Error
@@ -170,14 +170,14 @@ func (gormDB *GormDB) Transaction(traceId string, sqlStrings []string, params ..
 			if params != nil {
 				partwork := tx.Exec(sql, params[i]...)
 				if partwork.Error != nil {
-					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.TraceNode, traceId, innererror.ErrorInfoNode, partwork.Error, "sql", sql, "params", params[i])
+					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, partwork.Error, "sql", sql, "params", params[i]))
 					return partwork.Error
 				}
 				rowsAffect += partwork.RowsAffected
 			} else {
 				partwork := tx.Exec(sql)
 				if partwork.Error != nil {
-					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.TraceNode, traceId, innererror.ErrorInfoNode, partwork.Error, "sql", sql)
+					zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.SqlTransaction, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, partwork.Error, "sql", sql))
 					return partwork.Error
 				}
 				rowsAffect += partwork.RowsAffected

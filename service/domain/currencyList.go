@@ -4,6 +4,7 @@ import (
 	"TestAPI/database"
 	"TestAPI/entity"
 	"TestAPI/enum/errorcode"
+	"TestAPI/enum/innererror"
 	"TestAPI/external/service/tracer"
 	"net/http"
 )
@@ -17,9 +18,9 @@ func ParseCurrencyListRequest(traceId string, r *http.Request) (request entity.C
 	//read request header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate request
 	if !IsValid(traceId, request) {

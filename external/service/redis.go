@@ -49,7 +49,7 @@ func RedisInit() {
 			c, err := redis.Dial(redisConnectProtocol, redisConnectServer)
 			if err != nil {
 				err = fmt.Errorf(redisDialError, err)
-				zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+				zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 				return nil, err
 			}
 			/*TODO redis有password時應驗證
@@ -66,7 +66,7 @@ func RedisInit() {
 			_, err := c.Do("PING")
 			if err != nil {
 				err = fmt.Errorf(redisPingError, err)
-				zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+				zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 			}
 			return err
 		},
@@ -79,7 +79,7 @@ func (pool *RedisPool) GetKey(traceId string, key string) (value []byte) {
 	defer conn.Close()
 	value, err := redis.Bytes(conn.Do("GET", key))
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKey, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "key", key)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKey, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "key", key))
 		return nil
 	}
 	return value
@@ -91,13 +91,13 @@ func (pool *RedisPool) SetKey(traceId string, key string, value []byte, ttlSecon
 	defer conn.Close()
 	_, err := conn.Do("SET", key, value)
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "key", key, "value", string(value))
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "key", key, "value", string(value)))
 		return false
 	}
 	if ttlSecond > 0 {
 		_, err = conn.Do("EXPIRE", key, ttlSecond)
 		if err != nil {
-			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "key", key, "ttlSecond", ttlSecond)
+			zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisSetKey, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "key", key, "ttlSecond", ttlSecond))
 			return false
 		}
 	}
@@ -110,7 +110,7 @@ func (pool *RedisPool) DeleteKey(traceId string, keys ...interface{}) (isOK bool
 	defer conn.Close()
 	_, err := redis.Int(conn.Do("DEL", keys...))
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisDeleteKey, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "keys", keys)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisDeleteKey, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "keys", keys))
 		return false
 	}
 	return true
@@ -122,7 +122,7 @@ func (pool *RedisPool) LPushList(traceId string, key string, value []byte) (isOK
 	defer conn.Close()
 	_, err := redis.Int(conn.Do("LPUSH", key, value))
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisLPushList, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "key", key, "value", string(value))
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisLPushList, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "key", key, "value", string(value)))
 		return false
 	}
 	return true
@@ -139,7 +139,7 @@ func (pool *RedisPool) GetKeys(traceId string, keys ...interface{}) (values [][]
 	defer conn.Close()
 	datas, err := redis.Values(conn.Do("MGET", keys...))
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKeys, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "keys", keys)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisGetKeys, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "keys", keys))
 		return nil
 	}
 	for _, d := range datas {
@@ -158,7 +158,7 @@ func (pool *RedisPool) IncrKey(traceId string, key string) (data int64) {
 	defer conn.Close()
 	data, err := redis.Int64(conn.Do("INCR", key))
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKey, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "key", key)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKey, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "key", key))
 		return -1
 	}
 	return data
@@ -170,7 +170,7 @@ func (pool *RedisPool) IncrKeyBy(traceId string, key string, count int) (data in
 	defer conn.Close()
 	data, err := redis.Int64(conn.Do("INCRBY", key, count))
 	if err != nil {
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKeyBy, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "key", key)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.RedisIncrKeyBy, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "key", key))
 		return -1
 	}
 	return data

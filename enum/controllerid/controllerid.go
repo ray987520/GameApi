@@ -22,4 +22,6 @@ const (
 	Settlement              ControllerId = "c_Settlement"
 	Distribution            ControllerId = "c_Distribution"
 	CurrencyList            ControllerId = "c_CurrencyList"
+	KickToken               ControllerId = "c_KickToken"
+	IsTokenOnline           ControllerId = "c_IsTokenOnline"
 )

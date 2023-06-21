@@ -32,7 +32,7 @@ func Aes128Encrypt(traceId string, message []byte) string {
 	block, err := aes.NewCipher([]byte(aes128Key))
 	if err != nil {
 		err = fmt.Errorf(chiperError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Encrypt, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Encrypt, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return ""
 	}
 
@@ -41,7 +41,7 @@ func Aes128Encrypt(traceId string, message []byte) string {
 	//動態IV,避免同樣資料產生相同加密字串
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
 		err = fmt.Errorf(encryptError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Encrypt, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Encrypt, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return ""
 	}
 
@@ -56,20 +56,20 @@ func Aes128Decrypt(traceId string, message string) []byte {
 	cipherText, err := base64.StdEncoding.DecodeString(message)
 	if err != nil {
 		err = fmt.Errorf(base64Error, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Decrypt, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Decrypt, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return nil
 	}
 
 	block, err := aes.NewCipher([]byte(aes128Key))
 	if err != nil {
 		err = fmt.Errorf(chiperError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Decrypt, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Decrypt, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return nil
 	}
 
 	if len(cipherText) < aes.BlockSize {
 		err = fmt.Errorf(bloackSizeError)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Decrypt, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.Aes128Decrypt, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return nil
 	}
 

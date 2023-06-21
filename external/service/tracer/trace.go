@@ -4,7 +4,9 @@ import (
 	"TestAPI/enum/innererror"
 	"TestAPI/external/service/zaplog"
 	"bytes"
+	"fmt"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -21,7 +23,7 @@ func PanicTrace(traceId string) {
 		return
 	}
 	//輸出解析runtime stacktrace
-	zaplog.Errorw(innererror.PanicError, innererror.TraceNode, traceId, innererror.ErrorInfoNode, panicTraceDetail())
+	zaplog.Errorw(innererror.PanicError, innererror.TraceNode, traceId, innererror.DataNode, panicTraceDetail())
 }
 
 // panic的時候輸出解析runtime stacktrace
@@ -45,4 +47,20 @@ func panicTraceDetail() string {
 	}
 	stack = bytes.TrimRight(stack, "\n")
 	return string(stack)
+}
+
+// 合併資料成log內容字串
+func MergeMessage(keyValues ...interface{}) string {
+	//input資料長度不正確返回空值
+	if len(keyValues) == 0 || len(keyValues)%2 == 1 {
+		return ""
+	}
+
+	//成對處理資料
+	var messages []string
+	for i := 0; i < len(keyValues); i += 2 {
+		messages = append(messages, fmt.Sprintf("%v:%v", keyValues[i], keyValues[i+1]))
+	}
+
+	return strings.Join(messages, ", ")
 }

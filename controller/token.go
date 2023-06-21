@@ -3,6 +3,7 @@ package controller
 import (
 	"TestAPI/entity"
 	"TestAPI/enum/controllerid"
+	"TestAPI/enum/errorcode"
 	es "TestAPI/external/service"
 	"TestAPI/external/service/mconfig"
 	"TestAPI/external/service/tracer"
@@ -50,7 +51,8 @@ func writeHttpResponse(w http.ResponseWriter, traceId string) {
 	decimal.MarshalJSONWithoutQuotes = true
 
 	var (
-		data []byte
+		data      []byte
+		errorCode = string(errorcode.UnknowError)
 	)
 
 	//sync.Map不能用舊的map[key]方式取值賦值,改用sync.Map.Load取值
@@ -73,8 +75,10 @@ func writeHttpResponse(w http.ResponseWriter, traceId string) {
 		if data == nil {
 			data = []byte(responseFormatError)
 		}
+		errorCode = response.Status.Code
 	}
-	w.Write(data)
+	service.WriteHttpResponse(w, traceId, errorCode, data)
+	//w.Write(data)
 }
 
 // @Summary	令牌登入1.1

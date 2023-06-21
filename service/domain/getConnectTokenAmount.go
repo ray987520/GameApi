@@ -19,9 +19,9 @@ func ParseGetConnectTokenAmountRequest(traceId string, r *http.Request) (request
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//read querystring
 	query := r.URL.Query()
@@ -58,7 +58,7 @@ func (service *GetConnectTokenAmountService) Exec() (data interface{}) {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("wallet", wallet))
 
 	//don't show WalletID
 	wallet.WalletID = ""

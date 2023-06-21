@@ -35,9 +35,9 @@ func ParseRollInRequest(traceId string, r *http.Request) (request entity.RollInR
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate request,transId因為model公用所以在這裡另外寫條件
 	if !IsValid(traceId, request) || !strings.HasPrefix(request.TransID, "rollIn-") {
@@ -84,7 +84,7 @@ func (service *RollInService) Exec() (data interface{}) {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("wallet", wallet))
 
 	//try add game result
 	isAddGameResultOK := addGameResult(&service.Request.BaseSelfDefine, service.Request.GameResult)

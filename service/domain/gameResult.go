@@ -33,9 +33,9 @@ func ParseGameResultRequest(traceId string, r *http.Request) (request entity.Gam
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate request
 	if !IsValid(traceId, request) {
@@ -68,7 +68,7 @@ func (service *GameResultService) Exec() (data interface{}) {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("wallet", wallet))
 
 	//add gameresult
 	isAddGameResultOK := addGameResultRecountWallet(&service.Request.BaseSelfDefine, service.Request.GameResult, wallet)
@@ -116,7 +116,7 @@ func refreshWallet(selfDefine *entity.BaseSelfDefine, account, currency, token s
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, selfDefine.TraceID, "wallet", wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, selfDefine.TraceID, innererror.DataNode, tracer.MergeMessage("wallet", wallet))
 
 	return entity.GameResultResponse{
 		Currency: wallet.Currency,

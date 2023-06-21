@@ -33,9 +33,9 @@ func ParseRollOutRequest(traceId string, r *http.Request) (request entity.RollOu
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate reqeust,transId因為model公用所以在這裡另外寫條件
 	if !IsValid(traceId, request) || !strings.HasPrefix(request.TransID, "rollOut-") {
@@ -69,7 +69,7 @@ func (service *RollOutService) Exec() (data interface{}) {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("wallet", wallet))
 
 	//add rollOut record
 	isAddRollHistoryOK := addRollOutHistory(&service.Request.BaseSelfDefine, service.Request.RollHistory, wallet)
@@ -88,7 +88,7 @@ func (service *RollOutService) Exec() (data interface{}) {
 			return nil
 		}
 
-		zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, "wallet", wallet)
+		zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerWallet, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("wallet", wallet))
 
 		service.Request.ErrorCode = string(errorcode.Success)
 		return entity.RollOutResponse{

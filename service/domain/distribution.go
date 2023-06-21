@@ -33,9 +33,9 @@ func ParseDistributionRequest(traceId string, r *http.Request) (request entity.D
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate request
 	if !IsValid(traceId, request) {
@@ -58,7 +58,7 @@ func (service *DistributionService) Exec() (data interface{}) {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetDistributionWallet, innererror.TraceNode, service.Request.TraceID, "account", account, "wallet", wallet)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetDistributionWallet, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("account", account, "wallet", wallet))
 
 	//資料沒派彩過才派彩
 	hasRecord := hasUnpayActivityDistribution(&service.Request.BaseSelfDefine, service.Request.ActivityIV, service.Request.Rank)

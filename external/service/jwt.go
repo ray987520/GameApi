@@ -4,6 +4,7 @@ import (
 	esid "TestAPI/enum/externalserviceid"
 	"TestAPI/enum/innererror"
 	"TestAPI/external/service/mconfig"
+	"TestAPI/external/service/tracer"
 	"TestAPI/external/service/zaplog"
 	"fmt"
 	"time"
@@ -36,6 +37,7 @@ func InitJwt() {
 
 // 產生JWT TOKEN
 func CreateConnectToken(traceId string, account, currency string, gameId int) (tokenString string) {
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage("account", account, "currency", currency, "gameId", gameId, "jwtSecret", jwtSecret))
 	now := UtcNow()
 	claims := new(ConnectTokenClaims)
 	claims.Account = account
@@ -48,7 +50,7 @@ func CreateConnectToken(traceId string, account, currency string, gameId int) (t
 	tokenString, err := jwtToken.SignedString(jwtSecret)
 	if err != nil {
 		err = fmt.Errorf(signStringError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtCreateConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "tokenString", tokenString, "jwtSecret", jwtSecret)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtCreateConnectToken, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "tokenString", tokenString))
 		return ""
 	}
 	return tokenString
@@ -56,13 +58,14 @@ func CreateConnectToken(traceId string, account, currency string, gameId int) (t
 
 // 驗證JWT TOKEN
 func ValidConnectToken(traceId string, tokenString string) *ConnectTokenClaims {
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage("tokenString", tokenString, "jwtSecret", jwtSecret))
 	//解析jwt token
 	token, err := jwt.ParseWithClaims(tokenString, &ConnectTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
 	})
 	if err != nil {
 		err = fmt.Errorf(parseJwtError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "tokenString", tokenString, "jwtSecret", jwtSecret)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.DataNode, err)
 		return nil
 	}
 
@@ -73,6 +76,6 @@ func ValidConnectToken(traceId string, tokenString string) *ConnectTokenClaims {
 
 	//無法成功取回對應格式資料就是jwt字串異常
 	err = fmt.Errorf(getJwtDataError, err)
-	zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.ErrorInfoNode, err, "tokenString", tokenString, "jwtSecret", jwtSecret)
+	zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, esid.JwtValidConnectToken, innererror.TraceNode, traceId, innererror.DataNode, err)
 	return nil
 }

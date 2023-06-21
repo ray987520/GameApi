@@ -27,7 +27,7 @@ func InitConfigManager() {
 	//讀取設定檔失敗,不繼續執行代碼
 	if err != nil {
 		err = fmt.Errorf(viperReadFileError, err)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, innererror.MConfigInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, innererror.MConfigInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 		panic(err)
 	}
 	//動態監看設定檔更新
@@ -35,7 +35,7 @@ func InitConfigManager() {
 	//設定檔更新時列印更新欄位
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		msg := fmt.Sprintf(configChangeMessage, e.Name)
-		zaplog.Info(msg)
+		zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, innererror.MConfigInit, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, msg)
 	})
 }
 
@@ -70,7 +70,7 @@ func Get(configPath string) any {
 	//如果找不到設定值,不希望代碼繼續執行
 	if data == nil {
 		err := fmt.Errorf(viperReadConfigError, configPath, data)
-		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, innererror.MConfigGet, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err)
+		zaplog.Errorw(innererror.ExternalServiceError, innererror.FunctionNode, innererror.MConfigGet, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
 		panic(err)
 	}
 	return data

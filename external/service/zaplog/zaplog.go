@@ -95,7 +95,7 @@ func SetLoggerLevel(lvl string) {
 // 建立zap的實例,添加caller顯示調用log的代碼位置
 func NewLogger(filePath string, level zapcore.Level, maxSize int, maxBackups int, maxAge int, compress bool, serviceName string) *zap.Logger {
 	core := newCore(filePath, level, maxSize, maxBackups, maxAge, compress)
-	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddCallerSkip(2))
 }
 
 // 設置zapcore,添加輸出到os.Stdout跟lumberjack log切割
@@ -115,7 +115,7 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 		CallerKey:      "caller",
 		MessageKey:     "msg",
 		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
+		LineEnding:     zapcore.DefaultLineEnding,      //行結尾
 		EncodeLevel:    zapcore.CapitalLevelEncoder,    // 全大寫
 		EncodeTime:     zapcore.ISO8601TimeEncoder,     // ISO8601 UTC 时间格式,2006-01-02T15:04:05.000Z0700
 		EncodeDuration: zapcore.SecondsDurationEncoder, //顯示浮點樹的秒
@@ -125,7 +125,12 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 	}
 	return zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig), // 编码器配置
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(elsService), zapcore.AddSync(&hook)), // 打印到控制台和文件
+		//設定同步寫入log的標的
+		//*TODO 後續elasticsearch穩定的話,可以先拿掉Stdout,然後必要的話拿掉或減少文件log
+		zapcore.NewMultiWriteSyncer(
+			zapcore.AddSync(os.Stdout),  // 打印到控制台
+			zapcore.AddSync(elsService), // 打印到elastic
+			zapcore.AddSync(&hook)),     // 打印到文件
 		zap.NewAtomicLevelAt(level), // 日志级别
 	)
 }

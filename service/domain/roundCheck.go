@@ -26,9 +26,9 @@ func ParseRoundCheckRequest(traceId string, r *http.Request) (request entity.Rou
 	//read header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//read query string
 	query := r.URL.Query()
@@ -51,7 +51,7 @@ func ParseRoundCheckRequest(traceId string, r *http.Request) (request entity.Rou
 
 	//開始結束時間不正常或間隔超過24H,validate套件可以做類似驗證但是拉出來比較清楚
 	if toTime.Before(fromTime) || toTime.After(fromTime.Add(24*time.Hour)) {
-		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseRoundCheckRequest, innererror.TraceNode, traceId, innererror.ErrorInfoNode, timeRangeError, "request.FromDate", request.FromDate, "request.ToDate", request.ToDate)
+		zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseRoundCheckRequest, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, timeRangeError, "fromTime", fromTime, "toTime", toTime))
 		request.ErrorCode = string(errorcode.BadParameter)
 		return request
 	}

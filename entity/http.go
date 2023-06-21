@@ -1,9 +1,16 @@
 package entity
 
+import es "TestAPI/external/service"
+
 //文件標準HttpResponse結構
 type BaseHttpResponse struct {
 	Data   interface{}        `json:"data"`
 	Status HttpResponseStatus `json:"status"`
+}
+
+func (res *BaseHttpResponse) ToString() string {
+	data := es.JsonMarshal(res.Status.TraceCode, res)
+	return string(data)
 }
 
 //文件標準HttpResponse.Status

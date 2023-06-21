@@ -1,14 +1,27 @@
 package entity
 
-import "github.com/shopspring/decimal"
+import (
+	es "TestAPI/external/service"
 
-//取得支援幣別httprequest
+	"github.com/shopspring/decimal"
+)
+
+// 取得支援幣別httprequest
 type CurrencyListRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 }
 
-//取得支援幣別responsedata
+func (req *CurrencyListRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
+}
+
+func (req *CurrencyListRequest) SetErrorCode(errorCode string) {
+	req.ErrorCode = errorCode
+}
+
+// 取得支援幣別responsedata
 type CurrencyListResponse struct {
 	CurrencyID   int64           `json:"currencyKindID" gorm:"column:id"`
 	Currency     string          `json:"currencyKind" gorm:"column:currency"`

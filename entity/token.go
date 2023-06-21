@@ -1,6 +1,7 @@
 package entity
 
 import (
+	es "TestAPI/external/service"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,11 @@ type CreateGuestConnectTokenRequest struct {
 	Account  string `json:"account" validate:"min=3,max=32,acct"`
 	Currency string `json:"currency" validate:"oneof=CNY JPY THB MMK VND MYR IDR USD USDT BDT PHP kVND kIDR SGD KRW INR HKD"`
 	GameId   int    `json:"gameID" validate:"gt=0"`
+}
+
+func (req *CreateGuestConnectTokenRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 // 連線令牌結構,Key:[gameId]_[currency]_[account] ExpitreTime:timestamp+600
@@ -42,6 +48,11 @@ type AuthConnectTokenRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	AuthConnectToken
+}
+
+func (req *AuthConnectTokenRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 func (req *AuthConnectTokenRequest) SetErrorCode(errorCode string) {
@@ -97,6 +108,11 @@ type UpdateTokenLocationRequest struct {
 	UpdateTokenLocation
 }
 
+func (req *UpdateTokenLocationRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
+}
+
 func (req *UpdateTokenLocationRequest) SetErrorCode(errorCode string) {
 	req.ErrorCode = errorCode
 }
@@ -112,6 +128,11 @@ type GetConnectTokenInfoRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	Token string `json:"connectToken" validate:"min=1"`
+}
+
+func (req *GetConnectTokenInfoRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 // 取得令牌資訊responsedata
@@ -132,11 +153,21 @@ type GetConnectTokenAmountRequest struct {
 	Token string `json:"connectToken" validate:"min=1"`
 }
 
+func (req *GetConnectTokenAmountRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
+}
+
 // 令牌登出httprequest
 type DelConnectTokenRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	Token string `json:"connectToken" validate:"min=1"`
+}
+
+func (req *DelConnectTokenRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 func (req *DelConnectTokenRequest) SetErrorCode(errorCode string) {

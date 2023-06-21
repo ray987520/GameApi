@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	logResponse             = "Log Response"
+	logResponse             = "log response body"
 	getHttpResponseFunction = "GetHttpResponse"
 )
 
@@ -37,7 +37,7 @@ func GetHttpResponse(code string, requestTime, traceId string, data interface{})
 		},
 	}
 	//log response body
-	zaplog.Infow(logResponse, innererror.FunctionNode, getHttpResponseFunction, innererror.TraceNode, traceId, "response", resp)
+	zaplog.Infow(logResponse, innererror.FunctionNode, getHttpResponseFunction, innererror.TraceNode, traceId, innererror.DataNode, resp.ToString())
 	return resp
 }
 
@@ -62,4 +62,11 @@ func HttpRequest2Curl(req *http.Request) (string, error) {
 		return "", err
 	}
 	return curl.String(), nil
+}
+
+// response回寫到channel公用map
+func WriteHttpResponse(w http.ResponseWriter, traceId, errorCode string, data []byte) {
+	w.Header().Add(innererror.TraceNode, traceId)
+	w.Header().Add(innererror.ErrorCodeNode, errorCode)
+	w.Write(data)
 }

@@ -9,4 +9,5 @@ const (
 	ErrorHandleMiddleware MiddlewareId = "mw_ErrorHandleMiddleware"
 	IPWhiteListMiddleware MiddlewareId = "mw_IPWhiteListMiddleware"
 	LogOriginRequest      MiddlewareId = "mw_logOriginRequest"
+	TotalTimeMiddleware   MiddlewareId = "mw_TotalTimeMiddleware"
 )

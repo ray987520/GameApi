@@ -38,9 +38,9 @@ func ParseAuthConnectTokenRequest(traceId string, r *http.Request) (request enti
 	//read request header
 	request.Authorization = r.Header.Get(authHeader)
 	request.ContentType = r.Header.Get(contentTypeHeader)
-	request.TraceID = r.Header.Get(traceHeader)
-	request.RequestTime = r.Header.Get(requestTimeHeader)
-	request.ErrorCode = r.Header.Get(errorCodeHeader)
+	request.TraceID = r.Header.Get(innererror.TraceNode)
+	request.RequestTime = r.Header.Get(innererror.RequestTimeNode)
+	request.ErrorCode = r.Header.Get(innererror.ErrorCodeNode)
 
 	//validate request
 	if !IsValid(traceId, request) {
@@ -71,7 +71,7 @@ func (service *AuthConnectTokenService) Exec() interface{} {
 		return nil
 	}
 
-	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerInfo, innererror.TraceNode, service.Request.TraceID, "playerInfo", playerInfo)
+	zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, functionid.GetPlayerInfo, innererror.TraceNode, service.Request.TraceID, innererror.DataNode, tracer.MergeMessage("playerInfo", playerInfo))
 
 	//insert token
 	isOK = addConnectToken2Db(&service.Request.BaseSelfDefine, service.Request.Token, account, currency, service.Request.Ip, gameId)
@@ -115,7 +115,7 @@ func parseConnectToken(selfDefine *entity.BaseSelfDefine, token string, passExpi
 		now := es.Timestamp()
 		if now > tokenData.ExpitreTime {
 			err := fmt.Errorf(tokenExpire)
-			zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseConnectToken, innererror.TraceNode, selfDefine.TraceID, innererror.ErrorInfoNode, err, "now", now, "tokenData.ExpitreTime", tokenData.ExpitreTime)
+			zaplog.Errorw(innererror.ServiceError, innererror.FunctionNode, functionid.ParseConnectToken, innererror.TraceNode, selfDefine.TraceID, innererror.DataNode, tracer.MergeMessage(innererror.ErrorInfoNode, err, "now", now, "tokenData.ExpitreTime", tokenData.ExpitreTime))
 			selfDefine.ErrorCode = string(errorcode.BadParameter)
 			return "", "", 0
 		}

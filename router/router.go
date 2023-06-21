@@ -39,41 +39,38 @@ var (
 
 const (
 	responseFormatError = "Http Response Json Format Error"
-	genTraceIdError     = "Gen traceID Error"
+	genTraceIdError     = "gen traceId error,traceId:%s"
 	authHeader          = "Authorization"
-	traceHeader         = "traceid"
-	requestTimeHeader   = "requesttime"
-	errorCodeHeader     = "errorcode"
 	swaggerPath         = "/swagger"
 	apiPath             = "/api"
 	pprofPath           = "/debug"
-	logRequest          = "Log Request"
-	logResponse         = "Log Response"
+	logRequest          = "log request curl"
+	logResponse         = "log response header"
 	badErrorCode        = "no error code"
-	authTokenError      = "the authtoken invalid"
+	authTokenError      = "the authtoken invalid:%s"
 )
 
 // 初始化,註冊所有api controller/middleware跟api path對應
 func initRoutes() {
 	apiTokens = mconfig.GetStringSlice("application.apiToken") //api auth tokens
-	register("GET", "/token/createGuestConnectToken", controller.CreateGuestConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/v1.0/connectToken/authorization", controller.AuthConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/token/updateConnectTokenLocation", controller.UpdateTokenLocation, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/token/getConnectTokenInfo", controller.GetConnectTokenInfo, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/token/getConnectTokenAmount", controller.GetConnectTokenAmount, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/token/delConnectToken", controller.DelConnectToken, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/betSlip/getSequenceNumber", controller.GetSequenceNumber, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/betSlip/getSequenceNumbers", controller.GetSequenceNumbers, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/betSlip/roundCheck", controller.RoundCheck, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/v1.0/betSlipPersonal/gameResult", controller.GameResult, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/v1.0/betSlipPersonal/supplement/result", controller.FinishGameResult, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/betSlipPersonal/addUniversalGameLog", controller.AddGameLog, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/gameReport/orderList", controller.OrderList, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/transaction/rollOut", controller.RollOut, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/transaction/rollIn", controller.RollIn, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/v1.0/activity/ranking/settlement", controller.Settlement, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("POST", "/v1.0/activity/ranking/distribution", controller.Distribution, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
-	register("GET", "/currency/currencyList", controller.CurrencyList, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/token/createGuestConnectToken", controller.CreateGuestConnectToken, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/connectToken/authorization", controller.AuthConnectToken, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/token/updateConnectTokenLocation", controller.UpdateTokenLocation, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/token/getConnectTokenInfo", controller.GetConnectTokenInfo, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/token/getConnectTokenAmount", controller.GetConnectTokenAmount, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/token/delConnectToken", controller.DelConnectToken, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/betSlip/getSequenceNumber", controller.GetSequenceNumber, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/betSlip/getSequenceNumbers", controller.GetSequenceNumbers, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/betSlip/roundCheck", controller.RoundCheck, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/betSlipPersonal/gameResult", controller.GameResult, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/betSlipPersonal/supplement/result", controller.FinishGameResult, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/betSlipPersonal/addUniversalGameLog", controller.AddGameLog, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/gameReport/orderList", controller.OrderList, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/transaction/rollOut", controller.RollOut, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/transaction/rollIn", controller.RollIn, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/activity/ranking/settlement", controller.Settlement, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("POST", "/v1.0/activity/ranking/distribution", controller.Distribution, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
+	register("GET", "/currency/currencyList", controller.CurrencyList, TotalTimeMiddleware, TraceIDMiddleware, AuthMiddleware, ErrorHandleMiddleware)
 }
 
 // init pprof web ui
@@ -126,16 +123,16 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		token := req.Header.Get(authHeader)
 		//如果白名單auth token不包含輸入token就返回驗證失敗,GO1.18支援原生判斷slice contains
 		if !slices.Contains(apiTokens, token) {
-			reqTime := req.Header.Get(requestTimeHeader)
-			traceID := req.Header.Get(traceHeader)
+			reqTime := req.Header.Get(innererror.RequestTimeNode)
+			traceID := req.Header.Get(innererror.TraceNode)
 			response := service.GetHttpResponse(string(errorcode.BadParameter), reqTime, traceID, "")
 			data := es.JsonMarshal(traceID, response)
 			if data == nil {
 				data = []byte(responseFormatError)
 			}
-			w.Write(data)
-			err := fmt.Errorf(authTokenError)
-			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.AuthMiddleware, innererror.TraceNode, traceID, innererror.ErrorInfoNode, err, "token", token)
+			err := fmt.Errorf(authTokenError, token)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.AuthMiddleware, innererror.TraceNode, traceID, innererror.DataNode, err)
+			service.WriteHttpResponse(w, traceID, string(errorcode.BadParameter), data)
 			return
 		}
 		next.ServeHTTP(w, req)
@@ -154,16 +151,16 @@ func TraceIDMiddleware(next http.Handler) http.Handler {
 			if data == nil {
 				data = []byte(responseFormatError)
 			}
-			w.Write(data)
-			err := fmt.Errorf(genTraceIdError)
-			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.TraceIDMiddleware, innererror.TraceNode, tracer.DefaultTraceId, innererror.ErrorInfoNode, err, "traceID", traceID)
+			err := fmt.Errorf(genTraceIdError, traceID)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.TraceIDMiddleware, innererror.TraceNode, tracer.DefaultTraceId, innererror.DataNode, err)
+			service.WriteHttpResponse(w, traceID, string(errorcode.UnknowError), data)
 			return
 		}
 		//記錄原始http request
 		logOriginRequest(req, traceID)
-		req.Header.Add(traceHeader, traceID)
-		req.Header.Add(requestTimeHeader, es.ApiTimeString(es.LocalNow(8)))
-		req.Header.Add(errorCodeHeader, string(errorcode.Default))
+		req.Header.Add(innererror.TraceNode, traceID)
+		req.Header.Add(innererror.RequestTimeNode, es.ApiTimeString(es.LocalNow(8)))
+		req.Header.Add(innererror.ErrorCodeNode, string(errorcode.Default))
 		next.ServeHTTP(w, req)
 	})
 }
@@ -172,30 +169,42 @@ func TraceIDMiddleware(next http.Handler) http.Handler {
 func ErrorHandleMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		next.ServeHTTP(w, req)
-		traceID := req.Header.Get(traceHeader)
+		traceID := w.Header().Get(innererror.TraceNode)
+		errorCode := w.Header().Get(innererror.ErrorCodeNode)
+
 		//log response header
-		zaplog.Infow(logResponse, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, "responseHeaders", w.Header())
-		//在response之後檢查
-		errorCode := req.Header.Get(errorCodeHeader)
-		//正常的話errorCode應為0或其他值,空值代表異常結束
+		zaplog.Infow(logResponse, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, innererror.DataNode, tracer.MergeMessage("responseHeaders", w.Header()), innererror.ErrorCodeNode, errorCode)
+
+		//在response之後檢查,正常的話errorCode應為0或其他值,空值代表異常結束
 		if errorCode == "" {
-			reqTime := req.Header.Get(requestTimeHeader)
+			reqTime := req.Header.Get(innererror.RequestTimeNode)
 			response := service.GetHttpResponse(string(errorcode.UnknowError), reqTime, traceID, "")
 			data := es.JsonMarshal(traceID, response)
 			if data == nil {
 				data = []byte(responseFormatError)
 			}
-			w.Write(data)
 			err := fmt.Errorf(badErrorCode)
-			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, innererror.ErrorInfoNode, err, "errorCode", errorCode)
+			zaplog.Errorw(innererror.MiddlewareError, innererror.FunctionNode, middlewareid.ErrorHandleMiddleware, innererror.TraceNode, traceID, innererror.DataNode, err)
+			service.WriteHttpResponse(w, traceID, string(errorcode.UnknowError), data)
 			return
 		}
 
 	})
 }
 
+// 封裝總耗時中間件,輸出http request總耗用時間
+func TotalTimeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(w, req)
+		traceID := w.Header().Get(innererror.TraceNode)
+		reqTime, _ := es.ParseTime(traceID, es.ApiTimeFormat, req.Header.Get(innererror.RequestTimeNode))
+		useTime := es.LocalNow(8).Sub(reqTime)
+		zaplog.Infow(innererror.InfoNode, innererror.FunctionNode, middlewareid.TotalTimeMiddleware, innererror.TraceNode, traceID, innererror.TotalTimeNode, useTime.Seconds())
+	})
+}
+
 // 記錄原始http request
 func logOriginRequest(req *http.Request, traceId string) {
 	curl, err := service.HttpRequest2Curl(req)
-	zaplog.Infow(logRequest, innererror.FunctionNode, middlewareid.LogOriginRequest, innererror.TraceNode, traceId, "curl", curl, innererror.ErrorInfoNode, err)
+	zaplog.Infow(logRequest, innererror.FunctionNode, middlewareid.LogOriginRequest, innererror.TraceNode, traceId, innererror.DataNode, tracer.MergeMessage("curl", curl, innererror.DataNode, err))
 }

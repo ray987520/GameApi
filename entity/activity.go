@@ -1,8 +1,12 @@
 package entity
 
-import "github.com/shopspring/decimal"
+import (
+	es "TestAPI/external/service"
 
-//活動結算httprequest
+	"github.com/shopspring/decimal"
+)
+
+// 活動結算httprequest
 type SettlementRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
@@ -13,7 +17,12 @@ func (req *SettlementRequest) SetErrorCode(errorCode string) {
 	req.ErrorCode = errorCode
 }
 
-//活動結算requestdata
+func (req *SettlementRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
+}
+
+// 活動結算requestdata
 type Settlement struct {
 	ActivityIV         string          `json:"activityIV" validate:"min=1"`
 	Rank               int             `json:"rank" validate:"min=1"`
@@ -23,7 +32,7 @@ type Settlement struct {
 	Prize              decimal.Decimal `json:"prize" validate:"number"`
 }
 
-//活動派獎httprequest
+// 活動派獎httprequest
 type DistributionRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
@@ -34,7 +43,12 @@ func (req *DistributionRequest) SetErrorCode(errorCode string) {
 	req.ErrorCode = errorCode
 }
 
-//活動派獎requestdata
+func (req *DistributionRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
+}
+
+// 活動派獎requestdata
 type Distribution struct {
 	ActivityIV  string          `json:"activityIV" validate:"min=1"`
 	Rank        int             `json:"rank" validate:"min=1"`

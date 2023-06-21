@@ -1,9 +1,16 @@
 package entity
 
+import es "TestAPI/external/service"
+
 //取單一將號httprequest
 type GetSequenceNumberRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
+}
+
+func (req *GetSequenceNumberRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 //取單一將號responsedata
@@ -16,6 +23,11 @@ type GetSequenceNumbersRequest struct {
 	BaseHttpRequest
 	BaseSelfDefine
 	Quantity int `json:"quantity" validate:"min=1,max=50"`
+}
+
+func (req *GetSequenceNumbersRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 func (req *GetSequenceNumbersRequest) SetErrorCode(errorCode string) {
@@ -33,6 +45,11 @@ type RoundCheckRequest struct {
 	BaseSelfDefine
 	FromDate string `json:"fromDate" validate:"datetime=2006-01-02T15:04:05.999-07:00"`
 	ToDate   string `json:"toDate" validate:"datetime=2006-01-02T15:04:05.999-07:00"`
+}
+
+func (req *RoundCheckRequest) ToString() string {
+	data := es.JsonMarshal(req.TraceID, req)
+	return string(data)
 }
 
 //取需補注單responsedata
