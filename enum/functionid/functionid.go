@@ -58,4 +58,5 @@ const (
 	ValidateAccount                     FunctionId = "f_ValidateAccount"
 	ReadHttpRequestBody                 FunctionId = "f_ReadHttpRequestBody"
 	ParseJsonBody                       FunctionId = "f_ParseJsonBody"
+	CallThirdApi                        FunctionId = "f_callThirdApi"
 )

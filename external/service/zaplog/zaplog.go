@@ -71,7 +71,7 @@ func InitZaplog() {
 	log := NewLogger(filePath, level, maxlogsize, maxbackup, maxage, true, svcname)
 	logger = log.Sugar()
 	logger.Sync()
-	initElastic()
+	//initElastic()
 }
 
 // 取logger層級,預設info
@@ -128,9 +128,9 @@ func newCore(filePath string, level zapcore.Level, maxSize int, maxBackups int, 
 		//設定同步寫入log的標的
 		//*TODO 後續elasticsearch穩定的話,可以先拿掉Stdout,然後必要的話拿掉或減少文件log
 		zapcore.NewMultiWriteSyncer(
-			zapcore.AddSync(os.Stdout),  // 打印到控制台
-			zapcore.AddSync(elsService), // 打印到elastic
-			zapcore.AddSync(&hook)),     // 打印到文件
+			zapcore.AddSync(os.Stdout), // 打印到控制台
+			//zapcore.AddSync(elsService), // 打印到elastic
+			zapcore.AddSync(&hook)), // 打印到文件
 		zap.NewAtomicLevelAt(level), // 日志级别
 	)
 }
